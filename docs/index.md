@@ -6,7 +6,7 @@
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/dolfinx_iga.git
+git clone https://github.com/pantolin/dolfinx_iga.git
 cd dolfinx_iga
 ```
 

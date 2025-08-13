@@ -23,7 +23,7 @@ pip install dolfinx-iga
 
 ### From source
 ```bash
-git clone https://github.com/your-username/dolfinx_iga.git
+git clone https://github.com/pantolin/dolfinx_iga.git
 cd dolfinx_iga
 pip install -e .
 ```
@@ -62,7 +62,7 @@ points = curve.evaluate(t)
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/dolfinx_iga.git
+git clone https://github.com/pantolin/dolfinx_iga.git
 cd dolfinx_iga
 ```
 
@@ -118,8 +118,9 @@ If you use this software in your research, please cite:
 ```bibtex
 @software{dolfinx_iga,
   title={dolfinx_iga: Isogeometric Analysis Extension for DOLFINx},
-  author={Your Name},
+  author={Pablo Antolin},
+  institution={EPFL (École Polytechnique Fédérale de Lausanne)},
   year={2025},
-  url={https://github.com/your-username/dolfinx_iga}
+  url={https://github.com/pantolin/dolfinx_iga}
 }
 ```

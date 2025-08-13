@@ -8,10 +8,10 @@ description = "Isogeometric Analysis extension for DOLFINx"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Pablo Antolin", email = "pablo.antolin@epfl.ch"}
 ]
 maintainers = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Pablo Antolin", email = "pablo.antolin@epfl.ch"}
 ]
 keywords = ["finite element", "isogeometric analysis", "dolfinx", "fenics", "bspline", "nurbs"]
 classifiers = [
@@ -68,10 +68,10 @@ test = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/your-username/dolfinx_iga"
+Homepage = "https://github.com/pantolin/dolfinx_iga"
 Documentation = "https://dolfinx-iga.readthedocs.io/"
-Repository = "https://github.com/your-username/dolfinx_iga.git"
-"Bug Tracker" = "https://github.com/your-username/dolfinx_iga/issues"
+Repository = "https://github.com/pantolin/dolfinx_iga.git"
+"Bug Tracker" = "https://github.com/pantolin/dolfinx_iga/issues"
 
 [tool.setuptools]
 packages = ["dolfinx_iga"]
