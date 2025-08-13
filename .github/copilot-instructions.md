@@ -22,3 +22,8 @@ This is a Python package for Isogeometric Analysis (IGA) that extends DOLFINx wi
 - Optional Numba acceleration for performance
 - Type hints and comprehensive documentation
 - Integration ready for DOLFINx finite element framework
+
+## Coding Standards
+
+- for typing in Python files, for numpy arrays use `npt.NDArray` instead of `np.ndarray` and define `npt` as `import numpy.typing as npt`
+- for typing in Python files, use `|` for union types.
