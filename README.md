@@ -4,7 +4,7 @@ A modern isogeometric analysis (IGA) extension for DOLFINx, built for the FEniCS
 
 ## Overview
 
-`dolfinx_iga` is a Python library that extends [DOLFINx](https://github.com/FEniCS/dolfinx) with isogeometric analysis capabilities. It provides B-spline and NURBS (rational B-spline) functionalities, inspired by [tIGAr](https://github.com/david-kamensky/tIGAr) but modernized for the current FEniCSx ecosystem and incorporating features from [igakit](https://github.com/dalcinl/igakit).
+`dolfinx_iga` is a Python library that extends [DOLFINx](https://github.com/FEniCS/dolfinx) with isogeometric analysis capabilities. It provides B-spline and NURBS (rational B-spline) functionalities, inspired by [tIGAr](https://github.com/david-kamensky/tIGAr) but modernized for the current FEniCSx ecosystem.
 
 ## Features
 
@@ -139,7 +139,6 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - [DOLFINx](https://github.com/FEniCS/dolfinx) - The finite element library this extends
 - [tIGAr](https://github.com/david-kamensky/tIGAr) - Legacy IGA library for FEniCS
-- [igakit](https://github.com/dalcinl/igakit) - IGA toolkit providing inspiration for some functionalities
 
 ## Citation
 
