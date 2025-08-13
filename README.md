@@ -138,7 +138,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Acknowledgments
 
 - [DOLFINx](https://github.com/FEniCS/dolfinx) - The finite element library this extends
-- [tIGAr](https://github.com/david-kamensky/tIGAr) - Legacy IGA library for FEniCS
+- [tIGAr](https://github.com/david-kamensky/tIGAr) - IGA library for legacy FEniCS
 
 ## Citation
 
