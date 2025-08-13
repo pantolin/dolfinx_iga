@@ -1,58 +1,181 @@
 import numpy as np
+import numpy.typing as npt
+from typing import Optional
 
 from .utils.tolerance import get_default_tolerance, unique_with_tolerance
 
 
 class KnotsVector:
-    def __init__(self, knots_with_repetitions: np.typing.NDArray[np.floating]) -> None:
-        self._knots_with_repetitions = knots_with_repetitions
-        self._unique_knots = np.unique(self._knots_with_repetitions)
+    """Represents a vector of knots for spline interpolation.
+
+    This class handles the storage and manipulation of knot vectors,
+    including functionality for snapping knots to a specified tolerance.
+
+
+    """
+    def __init__(self, knots_w_rep: npt.NDArray[np.floating], snap_knots: bool = True, snap_tolerance: Optional[np.floating] = None) -> None:
+
+        if knots_w_rep.ndim != 1 or knots_w_rep.size < 2:
+            raise ValueError("Knots vector must be a 1D numpy array with at least two elements.")
+
+        if np.any(np.diff(knots_w_rep) < 0):
+            raise ValueError("Knots must be monotonically increasing.")
+
+        self._knots_w_rep =  knots_w_rep
+        if snap_knots:
+            self._knots_w_rep = KnotsVector.snap_to_tolerance(self._knots_w_rep, snap_tolerance)
+
+        self._unique_knots, self._multiplicities = unique_with_tolerance(self._knots_w_rep)
+
+        if self._unique_knots.size < 2:
+            raise ValueError("Knot vector must contain at least one non zero span.")
 
     def __len__(self) -> int:
-        return len(self._knots_with_repetitions)
+        """Get the length of the knots vector."""
+        return len(self._knots_w_rep)
 
     def __getitem__(self, index) -> np.floating:
-        return self._knots_with_repetitions[index]
+        """Get the knot value at the specified index."""
+        return self._knots_w_rep[index]
 
     def __repr__(self) -> str:
-        return f"KnotsVector({self._knots_with_repetitions.tolist()})\n{self.__str__()}"
+        """Concise representation of the knots vector."""
+        return f"KnotsVector({self._knots_w_rep!r})"
 
     def __str__(self) -> str:
+        """String representation showing knots with repetitions, unique knots, and multiplicities."""
         knots_str = np.array2string(
-            self._knots_with_repetitions, precision=4, suppress_small=True
+            self._knots_w_rep, precision=4, suppress_small=True
         )
         unique_str = np.array2string(
             self._unique_knots, precision=4, suppress_small=True
         )
-        return f"Knots with repetitions: {knots_str}\nUnique knots: {unique_str}"
+        repetitions_str = np.array2string(
+            self._multiplicities, precision=4, suppress_small=True
+        )
+        return f"Knots with repetitions: {knots_str}\nUnique knots: {unique_str}\nMultiplicities: {repetitions_str}"
 
     @property
-    def knots_with_repetitions(self) -> np.typing.NDArray[np.floating]:
+    def knots_with_repetitions(self) -> npt.NDArray[np.floating]:
         """Get the knot vector with repetitions."""
-        return self._knots_with_repetitions
+        return self._knots_w_rep
 
     @property
-    def unique_knots(self) -> np.typing.NDArray[np.floating]:
+    def unique_knots(self) -> npt.NDArray[np.floating]:
         """Get the unique knot values."""
         return self._unique_knots
 
     @property
+    def multiplicities(self) -> npt.NDArray[np.int_]:
+        """Get the multiplicities of the unique knot values."""
+        return self._multiplicities
+
+    @property
     def dtype(self) -> np.dtype:
         """Get the floating point data type of the knot vector."""
-        return self._knots_with_repetitions.dtype
+        return self._knots_w_rep.dtype
 
-    def multiplicities(self, tol: np.floating | None = None) -> dict[np.floating, int]:
-        """Get the multiplicity of each unique knot value.
-
+    @staticmethod
+    def snap_to_tolerance(
+        knots_w_rep: npt.NDArray[np.floating], 
+        tol: Optional[np.floating] = None
+    ) -> npt.NDArray[np.floating]:
+        """Make repeated knot values that are equal up to tolerance exactly equal.
+        
         Args:
+            knots_w_rep: Input knot vector with repetitions
             tol: Tolerance for considering knots as equal. If None, uses a default
                  based on the dtype precision.
+                 
+        Returns:
+            Knot vector with repetitions and values snapped to tolerance
         """
         if tol is None:
-            tol = get_default_tolerance(self.dtype)
+            tol = get_default_tolerance(knots_w_rep.dtype)
+        
+        result = knots_w_rep.copy()
+        unique_vals, _ = unique_with_tolerance(knots_w_rep, custom_tolerance=tol)
+        
+        for unique_val in unique_vals:
+            # Find all knots that are within tolerance of this unique value
+            mask = np.abs(knots_w_rep - unique_val) <= tol
+            # Set all matching knots to the exact unique value
+            result[mask] = unique_val
+            
+        return result
 
-        # Use the tolerance utility function
-        unique, counts = unique_with_tolerance(
-            self._knots_with_repetitions, custom_tolerance=tol
-        )
-        return dict(zip(unique, counts))
+    def num_nonzero_spans(self) -> int:
+        """Get the number of non-zero spans in the knot vector."""
+        return self._unique_knots.size - 1
+
+    def is_open(self, degree: int) -> bool:
+        """Check if the knot vector is open at a given degree."""
+        if degree < 0:
+            raise ValueError("Degree must be non-negative.")
+        # An open knot vector has the first and last knots with maximum multiplicity
+        return self._multiplicities[0] == degree + 1 and self._multiplicities[-1] == degree + 1
+
+    def is_uniform(self) -> bool:
+        """Check if the knot vector is uniform."""
+        # A uniform knot vector has equal spacing between unique knots
+        spacing = np.diff(self._unique_knots)
+        return np.all(np.isclose(spacing, spacing[0]))
+
+def create_open_uniform_knot_vector(
+    degree: int,
+    num_intervals: int,
+    start: float = 0.0,
+    end: float = 1.0,
+    continuity: Optional[int] = None,
+    dtype: np.dtype = np.float64
+) -> KnotsVector:
+    """Create an open uniform knot vector with specified continuity.
+            
+    Args:
+        degree: Polynomial degree
+        num_intervals: Number of non-zero intervals
+        start: Start point of the knot vector. Defaults to 0
+        end: End point of the knot vector. Defaults to 1
+        continuity: Desired continuity (C^k). If not defined, uses maximum continuity (degree-1)
+        dtype: Data type for the knot vector. If None, defaults to np.float64
+
+    Returns:
+        KnotsVector: Open uniform knot vector with specified properties
+        
+    Raises:
+        ValueError: If parameters are invalid
+    """
+    if degree < 0:
+        raise ValueError("Degree must be non-negative.")
+    if start >= end:
+        raise ValueError("Start must be less than end.")
+    if num_intervals < 1:
+        raise ValueError("Number of intervals must be at least 1.")
+
+    if continuity is None:
+        continuity = degree - 1
+
+    if continuity < -1 or continuity >= degree:
+        raise ValueError(f"Continuity must be between -1 and {degree-1} for degree {degree}.")
+
+    interior_multiplicity = degree - continuity
+            
+    # Create uniform spacing for unique interior knots
+    unique_knots = np.linspace(start, end, num_intervals + 1, dtype=dtype)
+            
+    # Build knot vector with repetitions
+    knots_list = []
+            
+    # First knot with multiplicity (degree + 1) for open condition
+    knots_list.extend([start] * degree)
+            
+    # Interior knots with specified multiplicity
+    for knot in unique_knots:
+        knots_list.extend([knot] * interior_multiplicity)
+            
+    # Last knot with multiplicity (degree + 1) for open condition
+    knots_list.extend([end] * degree)
+            
+    knots_w_rep = np.array(knots_list, dtype=dtype)
+            
+    return KnotsVector(knots_w_rep, snap_knots=False)

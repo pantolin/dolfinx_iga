@@ -27,4 +27,5 @@ This is a Python package for Isogeometric Analysis (IGA) that extends DOLFINx wi
 
 - for typing in Python files, for numpy arrays use `npt.NDArray` instead of `np.ndarray` and define `npt` as `import numpy.typing as npt`. When possible, indicate the array type like `npt.NDArray[np.float64]`.
 - for typing in Python files, use `|` for union types.
+- for typing in Python files, use `Optional` from `typing` for optional types whenever possible.
 - in testing, avoid using `assert(a is True)` use instead `assert a`. Similarly for False.
