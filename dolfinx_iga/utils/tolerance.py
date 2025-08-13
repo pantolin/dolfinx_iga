@@ -1,6 +1,6 @@
 """Tolerance utilities for floating-point comparisons in IGA applications."""
 
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -21,16 +21,16 @@ def get_default_tolerance(dtype: np.dtype) -> np.dtype:
         1e-12
     """
     if dtype == np.float16:
-        return dtype(1e-3)
+        return 1e-3
     elif dtype == np.float32:
-        return dtype(1e-6)
+        return 1e-6
     elif dtype == np.float64:
-        return dtype(1e-12)
+        return 1e-12
     elif dtype == np.longdouble:
-        return dtype(1e-15)
+        return 1e-15
     else:
         # Fallback for other floating types
-        return dtype(float(np.finfo(dtype).eps * 1000))
+        return float(np.finfo(dtype).eps * 1000)
 
 
 def get_strict_tolerance(dtype: np.dtype) -> np.dtype:
@@ -43,16 +43,16 @@ def get_strict_tolerance(dtype: np.dtype) -> np.dtype:
         Strict tolerance value for the given dtype (typically for parametric coordinates)
     """
     if dtype == np.float16:
-        return dtype(1e-4)
+        return 1e-4
     elif dtype == np.float32:
-        return dtype(1e-7)
+        return 1e-7
     elif dtype == np.float64:
-        return dtype(1e-15)
+        return 1e-15
     elif dtype == np.longdouble:
-        return dtype(1e-18)
+        return 1e-18
     else:
         # Fallback for other floating types
-        return dtype(float(np.finfo(dtype).eps * 100))
+        return float(np.finfo(dtype).eps * 100)
 
 
 def get_conservative_tolerance(dtype: np.dtype) -> np.dtype:
@@ -65,21 +65,21 @@ def get_conservative_tolerance(dtype: np.dtype) -> np.dtype:
         Conservative tolerance value for the given dtype
     """
     if dtype == np.float16:
-        return dtype(1e-2)
+        return 1e-2
     elif dtype == np.float32:
-        return dtype(1e-5)
+        return 1e-5
     elif dtype == np.float64:
-        return dtype(1e-10)
+        return 1e-10
     elif dtype == np.longdouble:
-        return dtype(1e-12)
+        return 1e-12
     else:
         # Fallback for other floating types
-        return dtype(float(np.finfo(dtype).eps * 10000))
+        return float(np.finfo(dtype).eps * 10000)
 
 
 def are_close(
-    a: Union[float, np.floating],
-    b: Union[float, np.floating],
+    a: float | np.floating,
+    b: float | np.floating,
     dtype: np.dtype,
     tolerance_type: str = "default",
 ) -> bool:
@@ -189,7 +189,7 @@ def get_machine_epsilon(dtype: np.dtype) -> np.dtype:
     Returns:
         Machine epsilon for the given dtype
     """
-    return dtype(np.finfo(dtype).eps)
+    return float(np.finfo(dtype).eps)
 
 
 def get_tolerance_info(dtype: np.dtype) -> dict:
