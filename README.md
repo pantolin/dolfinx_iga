@@ -16,9 +16,32 @@ A modern isogeometric analysis (IGA) extension for DOLFINx, built for the FEniCS
 
 ## Installation
 
+### Recommended: Using Conda
+
+The easiest way to install dolfinx_iga with all dependencies:
+
+```bash
+# Create conda environment
+conda env create -f environment.yml
+conda activate dolfinx_iga
+
+# Install dolfinx_iga in development mode
+pip install -e .
+```
+
+### Alternative: Manual Conda Setup
+
+```bash
+# Create environment with FEniCS
+conda create -n dolfinx_iga -c conda-forge python=3.11 fenics-dolfinx numpy
+conda activate dolfinx_iga
+pip install -e .
+```
+
 ### From PyPI (when available)
 ```bash
 pip install dolfinx-iga
+# Note: Requires separate FEniCS installation via conda
 ```
 
 ### From source
@@ -30,15 +53,16 @@ pip install -e .
 
 ## Dependencies
 
-### Required
-- `dolfinx` - The core DOLFINx library
-- `basix` - Finite element basis functions
-- `ffcx` - FEniCS Form Compiler
-- `ufl` - Unified Form Language
+### Required (via conda-forge)
+- `fenics-dolfinx` - The core DOLFINx library
+- `fenics-basix` - Finite element basis functions  
+- `fenics-ffcx` - FEniCS Form Compiler
+- `fenics-ufl` - Unified Form Language
 - `numpy` - Numerical computing
 
 ### Optional
 - `numba` - JIT compilation for performance optimization
+- `matplotlib` - Plotting and visualization
 
 ## Quick Start
 
@@ -66,7 +90,13 @@ git clone https://github.com/pantolin/dolfinx_iga.git
 cd dolfinx_iga
 ```
 
-2. Install in development mode:
+2. Create conda environment:
+```bash
+conda env create -f environment.yml
+conda activate dolfinx_iga
+```
+
+3. Install in development mode:
 ```bash
 pip install -e .[dev]
 ```

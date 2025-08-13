@@ -11,10 +11,10 @@ We welcome contributions to dolfinx_iga! This document outlines how to contribut
    cd dolfinx_iga
    ```
 
-3. Create a virtual environment:
+3. Create conda environment:
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   conda env create -f environment.yml
+   conda activate dolfinx_iga
    ```
 
 4. Install in development mode:

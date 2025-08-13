@@ -1,0 +1,45 @@
+name: dolfinx_iga
+channels:
+  - conda-forge
+  - pyviz
+dependencies:
+  # Core Python
+  - python>=3.9
+  
+  # FEniCS ecosystem (only available via conda)
+  - fenics-dolfinx
+  - fenics-basix  
+  - fenics-ffcx
+  - fenics-ufl
+  
+  # Scientific computing stack
+  - numpy
+  - scipy
+  - matplotlib
+  - jupyter
+  
+  # Optional performance
+  - numba
+  
+  # Development tools
+  - pytest
+  - pytest-cov
+  - black
+  - flake8
+  - mypy
+  - pre-commit
+  
+  # Documentation
+  - sphinx
+  - sphinx_rtd_theme
+  
+  # Package development
+  - pip
+  - setuptools
+  - setuptools_scm
+  
+  # Development-only pip packages
+  - pip:
+    - myst-parser
+    - sphinx-autoapi
+    - sphinx-autodoc-typehints

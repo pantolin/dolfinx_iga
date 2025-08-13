@@ -34,19 +34,17 @@ classifiers = [
 requires-python = ">=3.8"
 dependencies = [
     "numpy",
-    # Note: dolfinx, basix, ffcx, ufl are typically installed via conda
-    # Add them here when available through pip or when using conda
+    # Note: FEniCS dependencies (fenics-dolfinx, fenics-basix, fenics-ffcx, fenics-ufl) 
+    # are only available via conda-forge. Install via:
+    # conda install -c conda-forge fenics-dolfinx fenics-basix fenics-ffcx fenics-ufl
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 numba = ["numba"]
 fenics = [
-    # "dolfinx", 
-    # "basix",
-    # "ffcx", 
-    # "ufl",
-    # These dependencies are typically installed via conda-forge
+    # FEniCS dependencies are installed via conda-forge:
+    # conda install -c conda-forge fenics-dolfinx fenics-basix fenics-ffcx fenics-ufl
 ]
 dev = [
     "pytest>=6.0",
