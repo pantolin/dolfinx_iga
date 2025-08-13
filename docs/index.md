@@ -1,93 +1,44 @@
 # dolfinx_iga Documentation
 
-## Installation
+```{toctree}
+:maxdepth: 2
+:caption: Contents:
 
-### For Development
-
-1. Clone the repository:
-```bash
-git clone https://github.com/pantolin/dolfinx_iga.git
-cd dolfinx_iga
+installation
+api_reference
+examples
+contributing
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+**dolfinx_iga** is a Python package for Isogeometric Analysis (IGA) that extends DOLFINx with B-spline and NURBS functionality.
 
-3. Install in development mode:
-```bash
-pip install -e .
-```
+## Overview
 
-### FEniCS Dependencies
+This library provides:
+- B-spline curves and surfaces with Cox-de Boor algorithms
+- NURBS (rational B-splines) for exact geometry representation  
+- Optional Numba acceleration for performance
+- Type hints and comprehensive documentation
+- Integration ready for DOLFINx finite element framework
 
-Note: This package requires DOLFINx and related FEniCS components. These are typically installed via conda:
-
-```bash
-conda install -c conda-forge dolfinx basix ffcx ufl
-```
-
-## Running Tests
-
-```bash
-pytest tests/
-```
-
-Or with coverage:
-```bash
-pytest tests/ --cov=dolfinx_iga
-```
-
-## Examples
-
-See the `examples/` directory for usage examples:
-
-```bash
-python examples/basic_bspline_curve.py
-```
-
-## API Reference
-
-### B-spline Curves
+## Quick Start
 
 ```python
-from dolfinx_iga import BSplineCurve
+import dolfinx_iga as iga
 import numpy as np
 
-# Define control points
-control_points = np.array([[0, 0], [1, 2], [3, 1], [4, 0]])
+# Create a simple B-spline curve
+control_points = np.array([[0, 0], [1, 1], [2, 0], [3, 1]])
+degree = 3
+curve = iga.BSplineCurve(control_points, degree)
 
-# Create curve
-curve = BSplineCurve(control_points, degree=3)
-
-# Evaluate at parameter values
-points = curve.evaluate(np.linspace(0, 1, 100))
+# Evaluate the curve
+t = np.linspace(0, 1, 100)
+points = curve.evaluate(t)
 ```
 
-### NURBS Curves
+## Indices and tables
 
-```python
-from dolfinx_iga import NURBSCurve
-import numpy as np
-
-# Define control points and weights
-control_points = np.array([[0, 0], [1, 2], [3, 1], [4, 0]])
-weights = np.array([1.0, 2.0, 1.0, 1.0])
-
-# Create NURBS curve
-curve = NURBSCurve(control_points, weights, degree=3)
-
-# Evaluate
-points = curve.evaluate(np.linspace(0, 1, 100))
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Run the test suite
-6. Submit a pull request
+* {ref}`genindex`
+* {ref}`modindex`
+* {ref}`search`

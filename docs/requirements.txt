@@ -1,0 +1,9 @@
+# Documentation build requirements
+sphinx>=4.0
+sphinx-rtd-theme
+myst-parser
+sphinx-autoapi
+sphinx-autodoc-typehints
+numpy
+# Note: dolfinx and related packages would normally be here
+# but they require conda. RTD will mock them via autodoc_mock_imports

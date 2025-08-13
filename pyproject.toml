@@ -6,14 +6,17 @@ build-backend = "setuptools.build_meta"
 name = "dolfinx-iga"
 description = "Isogeometric Analysis extension for DOLFINx"
 readme = "README.md"
-license = {text = "MIT"}
-authors = [
-    {name = "Pablo Antolin", email = "pablo.antolin@epfl.ch"}
+license = { text = "MIT" }
+authors = [{ name = "Pablo Antolin", email = "pablo.antolin@epfl.ch" }]
+maintainers = [{ name = "Pablo Antolin", email = "pablo.antolin@epfl.ch" }]
+keywords = [
+    "finite element",
+    "isogeometric analysis",
+    "dolfinx",
+    "fenics",
+    "bspline",
+    "nurbs",
 ]
-maintainers = [
-    {name = "Pablo Antolin", email = "pablo.antolin@epfl.ch"}
-]
-keywords = ["finite element", "isogeometric analysis", "dolfinx", "fenics", "bspline", "nurbs"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
@@ -57,15 +60,13 @@ dev = [
     "numba",
 ]
 docs = [
-    "sphinx",
+    "sphinx>=4.0",
     "sphinx-rtd-theme",
     "myst-parser",
+    "sphinx-autoapi",
+    "sphinx-autodoc-typehints",
 ]
-test = [
-    "pytest>=6.0",
-    "pytest-cov",
-    "pytest-xdist",
-]
+test = ["pytest>=6.0", "pytest-cov", "pytest-xdist"]
 
 [project.urls]
 Homepage = "https://github.com/pantolin/dolfinx_iga"
@@ -139,13 +140,7 @@ warn_unreachable = true
 strict_equality = true
 
 [[tool.mypy.overrides]]
-module = [
-    "dolfinx.*",
-    "basix.*", 
-    "ffcx.*",
-    "ufl.*",
-    "numba.*",
-]
+module = ["dolfinx.*", "basix.*", "ffcx.*", "ufl.*", "numba.*"]
 ignore_missing_imports = true
 
 [tool.flake8]
@@ -160,5 +155,5 @@ exclude = [
     "*.egg-info",
     ".venv",
     ".mypy_cache",
-    ".pytest_cache"
+    ".pytest_cache",
 ]
