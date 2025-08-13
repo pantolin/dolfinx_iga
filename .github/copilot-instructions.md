@@ -1,26 +1,24 @@
-<!-- Use this file to provide workspace-specific custom instructions to Copilot. For more details, visit https://code.visualstudio.com/docs/copilot/copilot-customization#_use-a-githubcopilotinstructionsmd-file -->
-- [x] Verify that the copilot-instructions.md file in the .github directory is created.
+# dolfinx_iga Project Instructions
 
-- [x] Clarify Project Requirements
-	<!-- Python project for dolfinx IGA extension with pip installation, pytest testing, and proper package structure -->
+This is a Python package for Isogeometric Analysis (IGA) that extends DOLFINx with B-spline and NURBS functionality.
 
-- [x] Scaffold the Project
-	<!-- Created complete project structure with packages, modules, tests, examples, and configuration files -->
+## Project Structure
 
-- [x] Customize the Project
-	<!-- Configured for IGA extension with B-spline/NURBS functionality, proper dependencies, and testing setup -->
+- `dolfinx_iga/` - Main package with B-spline and NURBS implementations
+- `tests/` - Comprehensive test suite using pytest
+- `examples/` - Usage examples and tutorials
+- `docs/` - Documentation files
 
-- [ ] Install Required Extensions
-	<!-- Python extension and testing tools -->
+## Development Workflow
 
-- [ ] Compile the Project
-	<!-- Install dependencies and verify setup -->
+1. **Testing**: Run `pytest tests/` or use the "Run Tests" task
+2. **Code Quality**: Pre-commit hooks ensure consistent formatting
+3. **Installation**: Package is installed in development mode with `pip install -e .`
 
-- [ ] Create and Run Task
-	<!-- Create tasks for development workflow -->
+## Key Features
 
-- [ ] Launch the Project
-	<!-- Test project setup -->
-
-- [ ] Ensure Documentation is Complete
-	<!-- Finalize README and documentation -->
+- B-spline curves and surfaces with Cox-de Boor algorithms
+- NURBS (rational B-splines) for exact geometry representation
+- Optional Numba acceleration for performance
+- Type hints and comprehensive documentation
+- Integration ready for DOLFINx finite element framework
