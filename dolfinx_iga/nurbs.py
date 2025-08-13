@@ -6,7 +6,7 @@ extending B-splines with rational basis functions for exact representation
 of conic sections and other curved geometries.
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class NURBSCurve:
         """Get the knot vector."""
         return self._bspline.knot_vector
 
-    def evaluate(self, u: Union[float, np.ndarray]) -> np.ndarray:
+    def evaluate(self, u: float | np.ndarray) -> np.ndarray:
         """
         Evaluate the NURBS curve at parameter value(s) u.
 
@@ -78,7 +78,7 @@ class NURBSCurve:
             w = homogeneous_points[:, -1]
             return homogeneous_points[:, :-1] / w[:, np.newaxis]
 
-    def derivative(self, u: Union[float, np.ndarray], order: int = 1) -> np.ndarray:
+    def derivative(self, u: float | np.ndarray, order: int = 1) -> np.ndarray:
         """
         Evaluate derivatives of the NURBS curve using quotient rule.
 
@@ -178,9 +178,7 @@ class NURBSSurface:
         """Get the knot vector in v direction."""
         return self._bspline.knot_vector_v
 
-    def evaluate(
-        self, u: Union[float, np.ndarray], v: Union[float, np.ndarray]
-    ) -> np.ndarray:
+    def evaluate(self, u: float | np.ndarray, v: float | np.ndarray) -> np.ndarray:
         """
         Evaluate the NURBS surface at parameter values (u, v).
 

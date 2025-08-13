@@ -5,7 +5,7 @@ This module provides B-spline functionality for isogeometric analysis,
 including curve and surface evaluation, derivatives, and basis functions.
 """
 
-from typing import Optional, Union
+from typing import Optional
 
 import numpy as np
 
@@ -45,7 +45,7 @@ class BSplineCurve:
             self.knot_vector = np.asarray(knot_vector)
             validate_knot_vector(self.knot_vector, self.n_control_points, degree)
 
-    def evaluate(self, u: Union[float, np.ndarray]) -> np.ndarray:
+    def evaluate(self, u: float | np.ndarray) -> np.ndarray:
         """
         Evaluate the B-spline curve at parameter value(s) u.
 
@@ -70,7 +70,7 @@ class BSplineCurve:
 
         return points.squeeze() if len(u_array) == 1 else points
 
-    def derivative(self, u: Union[float, np.ndarray], order: int = 1) -> np.ndarray:
+    def derivative(self, u: float | np.ndarray, order: int = 1) -> np.ndarray:
         """
         Evaluate derivatives of the B-spline curve.
 
@@ -143,9 +143,7 @@ class BSplineSurface:
             self.knot_vector_v = np.asarray(knot_vector_v)
             validate_knot_vector(self.knot_vector_v, self.n_v, degree_v)
 
-    def evaluate(
-        self, u: Union[float, np.ndarray], v: Union[float, np.ndarray]
-    ) -> np.ndarray:
+    def evaluate(self, u: float | np.ndarray, v: float | np.ndarray) -> np.ndarray:
         """
         Evaluate the B-spline surface at parameter values (u, v).
 
