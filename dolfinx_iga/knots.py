@@ -58,7 +58,7 @@ class KnotsVector:
         """Get the length of the knots vector."""
         return len(self._knots_w_rep)
 
-    def __getitem__(self, index) -> np.floating:
+    def __getitem__(self, index: int | slice) -> np.floating | npt.NDArray[np.floating]:
         """Get the knot value at the specified index."""
         return self._knots_w_rep[index]
 
