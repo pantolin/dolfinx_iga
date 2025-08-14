@@ -18,7 +18,7 @@ class KnotsVector:
     _knots_w_rep: npt.NDArray[np.floating]
     _unique_knots: npt.NDArray[np.floating]
     _multiplicities: npt.NDArray[np.int_]
-    _tol: float
+    _tol: np.floating
 
     def __init__(
         self,
@@ -93,7 +93,7 @@ class KnotsVector:
         return self._multiplicities
 
     @property
-    def tolerance(self) -> float:
+    def tolerance(self) -> np.floating:
         """Get the tolerance value for floating point comparisons."""
         return self._tol
 
