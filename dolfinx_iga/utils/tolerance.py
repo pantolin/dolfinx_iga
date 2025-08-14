@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 
 
-def get_default_tolerance(dtype: np.dtype) -> np.dtype:
+def get_default_tolerance(dtype: np.dtype) -> float:
     """Get a reasonable default tolerance for floating-point comparisons.
 
     Args:
@@ -33,7 +33,7 @@ def get_default_tolerance(dtype: np.dtype) -> np.dtype:
         return float(np.finfo(dtype).eps * 1000)
 
 
-def get_strict_tolerance(dtype: np.dtype) -> np.dtype:
+def get_strict_tolerance(dtype: np.dtype) -> float:
     """Get a strict tolerance for high-precision floating-point comparisons.
 
     Args:
@@ -55,7 +55,7 @@ def get_strict_tolerance(dtype: np.dtype) -> np.dtype:
         return float(np.finfo(dtype).eps * 100)
 
 
-def get_conservative_tolerance(dtype: np.dtype) -> np.dtype:
+def get_conservative_tolerance(dtype: np.dtype) -> float:
     """Get a conservative tolerance for robust floating-point comparisons.
 
     Args:
@@ -145,7 +145,7 @@ def are_arrays_close(
 def unique_with_tolerance(
     arr: np.ndarray,
     tolerance_type: str = "default",
-    custom_tolerance: Optional[np.floating] = None,
+    custom_tolerance: Optional[float] = None,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Find unique values in array within tolerance.
 
@@ -180,7 +180,7 @@ def unique_with_tolerance(
     return unique, counts
 
 
-def get_machine_epsilon(dtype: np.dtype) -> np.dtype:
+def get_machine_epsilon(dtype: np.dtype) -> float:
     """Get machine epsilon for a given floating-point dtype.
 
     Args:
