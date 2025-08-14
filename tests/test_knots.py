@@ -261,6 +261,157 @@ class TestKnotsVector:
         # Original array should be unchanged
         np.testing.assert_array_equal(knots, original_knots)
 
+    def test_find_span_basic(self):
+        """Test basic find_span functionality."""
+        # Create knot vector: [0, 0, 0.5, 1, 1] with spans [0, 0.5) and [0.5, 1]
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Test values in first span [0, 0.5)
+        assert kv.find_span(np.array([0.0])) == 0
+        assert kv.find_span(np.array([0.25])) == 0
+        assert kv.find_span(np.array([0.49])) == 0
+        
+        # Test values in second span [0.5, 1]
+        assert kv.find_span(np.array([0.5])) == 1
+        assert kv.find_span(np.array([0.75])) == 1
+        assert kv.find_span(np.array([1.0])) == 1  # Special case: last knot
+
+    def test_find_span_multiple_values(self):
+        """Test find_span with multiple values at once."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        values = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        expected_spans = np.array([0, 0, 1, 1, 1])
+        
+        spans = kv.find_span(values)
+        np.testing.assert_array_equal(spans, expected_spans)
+
+    def test_find_span_three_spans(self):
+        """Test find_span with three spans."""
+        # Create knot vector with three spans: [0, 0.33), [0.33, 0.67), [0.67, 1]
+        knots = np.array([0.0, 0.0, 0.33, 0.67, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Test boundary and interior values
+        test_values = np.array([0.0, 0.1, 0.33, 0.5, 0.67, 0.8, 1.0])
+        expected_spans = np.array([0, 0, 1, 1, 2, 2, 2])
+        
+        spans = kv.find_span(test_values)
+        np.testing.assert_array_equal(spans, expected_spans)
+
+    def test_find_span_repeated_interior_knots(self):
+        """Test find_span with repeated interior knots."""
+        # Knot vector: [0, 0, 0, 0.5, 0.5, 1, 1, 1] with spans [0, 0.5) and [0.5, 1]
+        knots = np.array([0.0, 0.0, 0.0, 0.5, 0.5, 1.0, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Test values around the repeated interior knot
+        test_values = np.array([0.0, 0.25, 0.49, 0.5, 0.51, 0.75, 1.0])
+        expected_spans = np.array([0, 0, 0, 1, 1, 1, 1])
+        
+        spans = kv.find_span(test_values)
+        np.testing.assert_array_equal(spans, expected_spans)
+
+    def test_find_span_boundary_tolerance(self):
+        """Test find_span with values at boundaries within tolerance."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0], dtype=np.float64)
+        kv = KnotsVector(knots)
+        
+        # Test values slightly outside bounds but within tolerance
+        tol = kv.tolerance
+        
+        # Values slightly before start (should be clamped to first span)
+        slightly_before = np.array([-tol/2])
+        assert kv.find_span(slightly_before) == 0
+        
+        # Values slightly after end (should be clamped to last span)
+        slightly_after = np.array([1.0 + tol/2])
+        assert kv.find_span(slightly_after) == 1
+
+    def test_find_span_single_value_input(self):
+        """Test find_span with single scalar value."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Test with scalar input (not array) - should still return array
+        span = kv.find_span(0.25)
+        assert span == 0
+        assert isinstance(span, np.ndarray)
+        
+        span = kv.find_span(0.75)
+        assert span == 1
+        assert isinstance(span, np.ndarray)
+
+    def test_find_span_dtype_preservation(self):
+        """Test that find_span returns integer array."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0], dtype=np.float32)
+        kv = KnotsVector(knots)
+        
+        values = np.array([0.25, 0.75], dtype=np.float32)
+        spans = kv.find_span(values)
+        
+        assert spans.dtype == np.int_
+        np.testing.assert_array_equal(spans, [0, 1])
+
+    def test_find_span_out_of_bounds_error(self):
+        """Test find_span with values outside knot vector domain."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0], dtype=np.float64)
+        kv = KnotsVector(knots)
+        
+        # Values significantly outside the tolerance should raise ValueError
+        with pytest.raises(ValueError, match="must be within the knot vector domain"):
+            kv.find_span(np.array([-0.1]))  # Too far before start
+            
+        with pytest.raises(ValueError, match="must be within the knot vector domain"):
+            kv.find_span(np.array([1.1]))   # Too far after end
+            
+        with pytest.raises(ValueError, match="must be within the knot vector domain"):
+            kv.find_span(np.array([0.5, 1.1]))  # Mixed valid/invalid
+
+    def test_find_span_edge_cases(self):
+        """Test find_span edge cases."""
+        # Minimal knot vector with just two unique knots
+        knots = np.array([0.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Only one span [0, 1]
+        assert kv.find_span(np.array([0.0])) == 0
+        assert kv.find_span(np.array([0.5])) == 0
+        assert kv.find_span(np.array([1.0])) == 0
+
+    def test_find_span_uniform_spacing(self):
+        """Test find_span with uniformly spaced knots."""
+        # Create uniform knot vector [0, 0, 0.25, 0.5, 0.75, 1, 1]
+        # Spans: [0, 0.25), [0.25, 0.5), [0.5, 0.75), [0.75, 1]
+        knots = np.array([0.0, 0.0, 0.25, 0.5, 0.75, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Test systematic coverage of all spans
+        test_values = np.array([0.0, 0.1, 0.25, 0.3, 0.5, 0.6, 0.75, 0.9, 1.0])
+        expected_spans = np.array([0, 0, 1, 1, 2, 2, 3, 3, 3])
+        
+        spans = kv.find_span(test_values)
+        np.testing.assert_array_equal(spans, expected_spans)
+
+    def test_find_span_large_array(self):
+        """Test find_span with a large array of values."""
+        knots = np.array([0.0, 0.0, 0.5, 1.0, 1.0])
+        kv = KnotsVector(knots)
+        
+        # Create many test values
+        test_values = np.linspace(0.0, 1.0, 1000)
+        spans = kv.find_span(test_values)
+        
+        # All values in [0, 0.5) should map to span 0
+        first_half_mask = test_values < 0.5
+        assert np.all(spans[first_half_mask] == 0)
+        
+        # All values in [0.5, 1] should map to span 1
+        second_half_mask = test_values >= 0.5
+        assert np.all(spans[second_half_mask] == 1)
+
 
 class TestCreateOpenUniformKnotVector:
     """Test create_open_uniform_knot_vector function."""

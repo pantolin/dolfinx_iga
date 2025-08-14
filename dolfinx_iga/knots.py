@@ -91,8 +91,8 @@ class KnotsVector:
             Knot vector with repetitions and values snapped to tolerance
         """
         if tol is None:
-            tol = get_default_tolerance(knots_w_rep.dtype)
-        
+            tol = KnotsVector._get_tolerance(knots_w_rep.dtype)
+
         result = knots_w_rep.copy()
         unique_vals, _ = unique_with_tolerance(knots_w_rep, custom_tolerance=tol)
         
@@ -120,6 +120,58 @@ class KnotsVector:
         # A uniform knot vector has equal spacing between unique knots
         spacing = np.diff(self._unique_knots)
         return np.all(np.isclose(spacing, spacing[0]))
+
+    def find_span(self, values: npt.NDArray[np.floating]) -> npt.NDArray[np.int_]:
+        """Find the indices of non-zero spans to which values belong.
+            
+        A value v belongs to a non-zero span [u_i, u_{i+1}) if u_i <= v < u_{i+1}.
+        Special case: if v equals the last knot of the vector, it belongs to the last span.
+            
+        Args:
+            values: Array of values to find span indices for
+                
+        Returns:
+            Array of span indices for each input value
+                
+        Raises:
+            ValueError: If any value is outside the knot vector domain (within tolerance)
+        """
+        values = np.asarray(values, dtype=self.dtype)
+        tol = self.tolerance
+            
+        # Check bounds with tolerance
+        min_knot = self._unique_knots[0]
+        max_knot = self._unique_knots[-1]
+            
+        if np.any(values < (min_knot - tol)) or np.any(values > (max_knot + tol)):
+            raise ValueError(f"All values must be within the knot vector domain [{min_knot}, {max_knot}] (within tolerance {tol})")
+        
+        # Clamp values to valid range
+        values = np.clip(values, min_knot, max_knot)
+            
+        # Find span indices using searchsorted
+        # searchsorted finds insertion points, we need to adjust for our span definition
+        span_indices = np.searchsorted(self._unique_knots[1:], values, side='right')
+        
+        # Ensure we have an array for consistent indexing
+        span_indices = np.atleast_1d(span_indices)
+            
+        # Handle the special case where value equals the last knot
+        last_knot_mask = np.isclose(values, max_knot, atol=tol)
+        last_knot_mask = np.atleast_1d(last_knot_mask)
+        span_indices[last_knot_mask] = self.num_nonzero_spans() - 1
+            
+        return span_indices.astype(np.int_)
+
+    @staticmethod
+    def _get_tolerance(dtype: np.dtype) -> float:
+        """Get the tolerance to be used in the class."""
+        return get_default_tolerance(dtype)
+
+    @property
+    def tolerance(self) -> np.dtype:
+        """Get the tolerance value for floating point comparisons based on the knots vector data type."""
+        return KnotsVector._get_tolerance(self.dtype)
 
 def create_open_uniform_knot_vector(
     degree: int,
