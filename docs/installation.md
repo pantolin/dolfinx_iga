@@ -67,7 +67,7 @@ print(f"dolfinx_iga version: {dolfinx_iga.__version__}")
 # Run basic functionality test
 import numpy as np
 control_points = np.array([[0, 0], [1, 1], [2, 0]])
-curve = dolfinx_iga.BSplineCurve(control_points, degree=2)
+curve = dolfinx_iga.BsplineCurve(control_points, degree=2)
 point = curve.evaluate(0.5)
 print(f"Test evaluation: {point}")
 ```

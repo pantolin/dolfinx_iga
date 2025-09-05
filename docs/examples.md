@@ -4,7 +4,7 @@
 
 ```python
 import numpy as np
-from dolfinx_iga import BSplineCurve
+from dolfinx_iga import BsplineCurve
 
 # Define control points
 control_points = np.array([
@@ -15,7 +15,7 @@ control_points = np.array([
 ])
 
 # Create B-spline curve
-curve = BSplineCurve(control_points, degree=3)
+curve = BsplineCurve(control_points, degree=3)
 
 # Evaluate at parameter values
 u_vals = np.linspace(0, 1, 100)
@@ -51,7 +51,7 @@ points = circle_arc.evaluate(u_vals)
 
 ```python
 import numpy as np
-from dolfinx_iga import BSplineSurface
+from dolfinx_iga import BsplineSurface
 
 # 3x3 control point grid
 control_points = np.array([
@@ -61,7 +61,7 @@ control_points = np.array([
 ])
 
 # Create surface
-surface = BSplineSurface(control_points, degree_u=2, degree_v=2)
+surface = BsplineSurface(control_points, degree_u=2, degree_v=2)
 
 # Evaluate on parameter grid
 u_vals = np.linspace(0, 1, 10)

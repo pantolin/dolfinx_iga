@@ -12,8 +12,8 @@ The API reference is automatically generated from the source code documentation.
 ## Main Classes
 
 ### B-spline Functionality
-- {class}`dolfinx_iga.BSplineCurve` - B-spline curves
-- {class}`dolfinx_iga.BSplineSurface` - B-spline surfaces
+- {class}`dolfinx_iga.BsplineCurve` - B-spline curves
+- {class}`dolfinx_iga.BsplineSurface` - B-spline surfaces
 
 ### NURBS Functionality  
 - {class}`dolfinx_iga.NURBSCurve` - NURBS curves

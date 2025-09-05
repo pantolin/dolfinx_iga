@@ -73,7 +73,7 @@ import numpy as np
 # Create a simple B-spline curve
 control_points = np.array([[0, 0], [1, 1], [2, 0], [3, 1]])
 degree = 3
-curve = iga.BSplineCurve(control_points, degree)
+curve = iga.BsplineCurve(control_points, degree)
 
 # Evaluate the curve
 t = np.linspace(0, 1, 100)
