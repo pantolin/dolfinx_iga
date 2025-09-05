@@ -7,7 +7,6 @@ from dolfinx_iga.utils.tolerance import (
     get_default_tolerance,
     get_strict_tolerance,
     get_tolerance_info,
-    unique_with_tolerance,
 )
 
 
@@ -31,23 +30,6 @@ class TestToleranceFunctions:
         assert np.isclose(get_conservative_tolerance(np.float32), 1e-5)
         assert np.isclose(get_conservative_tolerance(np.float64), 1e-10)
 
-    def test_unique_with_tolerance(self):
-        """Test unique values with tolerance."""
-        # Use differences that are smaller than the default tolerance (1e-6 for float32)
-        # Using 5e-7 which is definitely smaller than 1e-6
-        arr = np.array([1.0, 1.0 + 5e-7, 2.0, 2.0 + 5e-7, 3.0], dtype=np.float32)
-        unique, counts = unique_with_tolerance(arr)
-
-        # With float32 default tolerance (1e-6), differences of 5e-7 should be grouped
-        assert len(unique) == 3  # Should group close values
-        assert counts.sum() == len(arr)
-
-        # Test with strict tolerance - should find more unique values since 5e-7 > 1e-7 (strict)
-        unique_strict, counts_strict = unique_with_tolerance(arr, "strict")
-        assert len(unique_strict) >= len(
-            unique
-        )  # Strict should find more unique values
-
     def test_get_tolerance_info(self):
         """Test tolerance information function."""
         info = get_tolerance_info(np.float32)
@@ -67,4 +49,3 @@ class TestToleranceFunctions:
 
 if __name__ == "__main__":
     TestToleranceFunctions().test_get_default_tolerance()
-    TestToleranceFunctions().test_unique_with_tolerance()

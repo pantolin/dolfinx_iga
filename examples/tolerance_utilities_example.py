@@ -2,11 +2,9 @@
 
 import numpy as np
 
-from dolfinx_iga.knots import KnotsVector
 from dolfinx_iga.utils.tolerance import (
     get_default_tolerance,
     get_tolerance_info,
-    unique_with_tolerance,
 )
 
 
@@ -42,17 +40,6 @@ def main():
     )
 
     print(f"   Original knots: {len(knot_values)} values")
-
-    # Default tolerance
-    unique_default, counts_default = unique_with_tolerance(knot_values, "default")
-    print(f"   Unique (default): {len(unique_default)} values")
-    print(f"   Values: {unique_default}")
-    print(f"   Counts: {counts_default}")
-
-    # Strict tolerance
-    unique_strict, counts_strict = unique_with_tolerance(knot_values, "strict")
-    print(f"   Unique (strict): {len(unique_strict)} values")
-    print()
 
     # 3. Using with KnotsVector class
     print("3. KnotsVector with Tolerance:")
