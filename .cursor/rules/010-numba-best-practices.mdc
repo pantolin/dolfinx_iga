@@ -1,0 +1,35 @@
+---
+description: Auto-attach Numba best practices and coding standards for performant Python in this repo
+globs: "**/*.py"
+alwaysApply: false
+---
+
+# Numba Best Practices (Auto-attached for Python files)
+
+When using Numba in this project
+- Prefer `@njit` (no-Python mode) over generic `@jit` when feasible
+- Specify types where helpful (signatures or `npt.NDArray[np.float64]` hints in Python)
+- Use `numba.prange` with `parallel=True` for parallel loops
+- Avoid Python `list`/`dict` inside `@njit`; use typed lists/dicts if needed
+- Minimize CPU↔GPU transfers; preallocate arrays; operate on device arrays when using CUDA
+- Avoid object mode; refactor unsupported constructs
+- Validate shapes/dtypes before JIT paths; handle numerical edge cases (NaN/Inf, div-by-zero)
+
+Performance tips
+- Consider `fastmath=True` where IEEE 754 strictness isn’t required
+- Fuse kernels/loops to reduce memory traffic when appropriate
+- Be mindful of memory alignment and large array allocations
+
+Testing and tooling
+- Mirror tests to cover JIT paths and edge cases
+- Profile first (`cProfile`, `line_profiler`) before optimizing
+- Ensure NumPy/Numba versions are compatible
+
+Common pitfalls
+- Globals in JIT regions hinder inference
+- Unsupported Python features force object mode
+- Unnecessary copies or host↔device transfers hurt performance
+
+References
+@tests/
+@dolfinx_iga/

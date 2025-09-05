@@ -1,0 +1,39 @@
+---
+description: Always-apply project overview, workflow, and Python typing/testing standards for dolfinx_iga
+globs: "**/*"
+alwaysApply: true
+---
+
+# dolfinx_iga Project Instructions (Always)
+
+Context
+- Python package for Isogeometric Analysis (IGA) extending DOLFINx with B-splines and NURBS
+- Key modules: `dolfinx_iga/`, `tests/`, `examples/`, `docs/`
+
+Development workflow
+- Testing: run `pytest tests/` (or the IDE "Run Tests" task)
+- Code quality: pre-commit hooks ensure consistent formatting
+- Install (dev): `pip install -e .`
+
+Key features
+- B-spline curves/surfaces via Cox–de Boor
+- NURBS for exact geometry
+- Optional Numba acceleration
+- Type hints and docs; integrates with DOLFINx
+
+Coding standards
+- Use `import numpy.typing as npt`; prefer `npt.NDArray` (e.g., `npt.NDArray[np.float64]`) over `np.ndarray`
+- Use `|` for union types
+- Prefer `Optional[...]` from `typing` for optional types where applicable
+- In tests, avoid `assert(a is True)`; instead use `assert a` (and `assert not a`)
+
+Agent guidance for edits
+- Provide concrete code first, then brief bullets
+- Be terse, casual, accurate; treat user as expert
+- Minimal diffs when editing existing code; include a few lines of context
+- Consider modern/contrarian approaches when appropriate; clearly label speculation
+
+References
+@README.md
+@docs/index.md
+@docs/cox_de_boor.md
