@@ -1,6 +1,6 @@
 """Tolerance utilities for floating-point comparisons in IGA applications."""
 
-from typing import Optional
+from typing import TypedDict
 
 import numpy as np
 
@@ -17,8 +17,8 @@ def _check_dtype(dtype: np.dtype | type[np.floating]) -> None:
 
 def _get_tolerance(
     dtype: np.dtype | type[np.floating],
-    values: list[np.float16 | np.float32 | np.float64 | np.longdouble],
-) -> np.floating:
+    values: list[float],
+) -> float:
     """Get the tolerance value for a specific dtype and a list of values.
 
     Args:
@@ -41,7 +41,7 @@ def _get_tolerance(
         return values[3]
 
 
-def get_default_tolerance(dtype: np.dtype | type[np.floating]) -> np.floating:
+def get_default_tolerance(dtype: np.dtype | type[np.floating]) -> float:
     """Get a reasonable default tolerance for floating-point comparisons.
 
     Args:
@@ -59,11 +59,11 @@ def get_default_tolerance(dtype: np.dtype | type[np.floating]) -> np.floating:
 
     return _get_tolerance(
         dtype,
-        [np.float16(1e-3), np.float32(1e-6), np.float64(1e-12), np.longdouble(1e-15)],
+        [float(1e-3), float(1e-6), float(1e-12), float(1e-15)],
     )
 
 
-def get_strict_tolerance(dtype: np.dtype | type[np.floating]) -> np.floating:
+def get_strict_tolerance(dtype: np.dtype | type[np.floating]) -> float:
     """Get a strict tolerance for high-precision floating-point comparisons.
 
     Args:
@@ -75,11 +75,11 @@ def get_strict_tolerance(dtype: np.dtype | type[np.floating]) -> np.floating:
 
     return _get_tolerance(
         dtype,
-        [np.float16(1e-4), np.float32(1e-7), np.float64(1e-15), np.longdouble(1e-18)],
+        [float(1e-4), float(1e-7), float(1e-15), float(1e-18)],
     )
 
 
-def get_conservative_tolerance(dtype: np.dtype | type[np.floating]) -> np.floating:
+def get_conservative_tolerance(dtype: np.dtype | type[np.floating]) -> float:
     """Get a conservative tolerance for robust floating-point comparisons.
 
     Args:
@@ -91,46 +91,8 @@ def get_conservative_tolerance(dtype: np.dtype | type[np.floating]) -> np.floati
 
     return _get_tolerance(
         dtype,
-        [np.float16(1e-2), np.float32(1e-5), np.float64(1e-10), np.longdouble(1e-12)],
+        [float(1e-2), float(1e-5), float(1e-10), float(1e-12)],
     )
-
-
-def unique_with_tolerance(
-    arr: np.ndarray,
-    tolerance_type: str = "default",
-    custom_tolerance: Optional[np.floating] = None,
-) -> tuple[np.ndarray, np.ndarray]:
-    """Find unique values in array within tolerance.
-
-    Args:
-        arr: Input array
-        tolerance_type: Type of tolerance ("default", "strict", "conservative")
-        custom_tolerance: Custom tolerance value (overrides tolerance_type)
-
-    Returns:
-        Tuple of (unique_values, counts)
-
-    Examples:
-        >>> arr = np.array([1.0, 1.000001, 2.0, 2.000001], dtype=np.float32)
-        >>> unique_vals, counts = unique_with_tolerance(arr)
-        >>> len(unique_vals)
-        2
-    """
-    if custom_tolerance is not None:
-        tol = custom_tolerance
-    elif tolerance_type == "strict":
-        tol = get_strict_tolerance(arr.dtype)
-    elif tolerance_type == "conservative":
-        tol = get_conservative_tolerance(arr.dtype)
-    else:  # default
-        tol = get_default_tolerance(arr.dtype)
-
-    # Round to tolerance precision for grouping
-    scale = 1.0 / tol
-    rounded_arr = np.round(arr * scale) / scale
-    unique, counts = np.unique(rounded_arr, return_counts=True)
-
-    return unique, counts
 
 
 def get_machine_epsilon(dtype: np.dtype | type[np.floating]) -> float:
@@ -148,7 +110,20 @@ def get_machine_epsilon(dtype: np.dtype | type[np.floating]) -> float:
     return float(np.finfo(dtype).eps)
 
 
-def get_tolerance_info(dtype: np.dtype | type[np.floating]) -> dict:
+class ToleranceInfo(TypedDict):
+    dtype: np.dtype | type[np.floating]
+    machine_epsilon: float
+    default_tolerance: float
+    strict_tolerance: float
+    conservative_tolerance: float
+    precision_bits: int
+    max_value: float
+    min_value: float
+
+
+def get_tolerance_info(
+    dtype: np.dtype | type[np.floating],
+) -> ToleranceInfo:
     """Get comprehensive tolerance information for a dtype.
 
     Args:
