@@ -10,16 +10,6 @@ try:
 except ImportError:
     __version__ = "unknown"
 
-from .bspline import BSplineCurve, BSplineSurface
-from .nurbs import NURBSCurve, NURBSSurface
-from .utils import basis_functions, knot_vector_utils
-
 __all__ = [
     "__version__",
-    "BSplineCurve",
-    "BSplineSurface",
-    "NURBSCurve",
-    "NURBSSurface",
-    "knot_vector_utils",
-    "basis_functions",
 ]
