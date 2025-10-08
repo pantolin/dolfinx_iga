@@ -9,7 +9,7 @@ FiniteElementBase = basix.ufl._ElementBase
 
 
 class SplineElement:
-    def __init__(self, degree, supdegree=None):
+    def __init__(self, degree: int, supdegree: int = None):
         if supdegree is None:
             supdegree = degree
 
@@ -18,9 +18,11 @@ class SplineElement:
         if supdegree < degree:
             raise ValueError("Supdegree must be no smaller than degree")
 
-        self._degree = degree
-        self._supdegree = supdegree
-        self._element = self._create_cardinal_bspline_element_1D(degree, supdegree)
+        self._degree: int = degree
+        self._supdegree: int = supdegree
+        self._element: FiniteElementBase = self._create_cardinal_bspline_element_1D(
+            degree, supdegree
+        )
 
     @property
     def degree(self) -> int:
@@ -34,11 +36,11 @@ class SplineElement:
     def basix_ufl_element(self) -> FiniteElementBase:
         return self._element
 
-    def tabulate(self, *args, **kwargs):
+    def tabulate(self, *args, **kwargs) -> np.ndarray:
         """Delegate to the underlying basix element."""
         return self._element.tabulate(*args, **kwargs)
 
-    def __getattr__(self, name):
+    def __getattr__(self, name) -> Any:
         """Automatically delegate any other methods/attributes to the basix element."""
         return getattr(self._element, name)
 
