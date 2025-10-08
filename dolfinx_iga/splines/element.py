@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import typing
+
 import basix
 import basix.ufl
 import numpy as np
@@ -6,6 +10,9 @@ from basix import CellType
 from dolfinx_iga.splines.basis_1D import evaluate_cardinal_Bspline_basis
 
 FiniteElementBase = basix.ufl._ElementBase
+
+if typing.TYPE_CHECKING:
+    from typing import Any
 
 
 class SplineElement:
