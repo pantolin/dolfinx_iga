@@ -5,7 +5,7 @@ from basix import CellType
 
 from dolfinx_iga.splines.basis_1D import evaluate_cardinal_Bspline_basis
 
-BasixUFLElementBase = basix.ufl._ElementBase
+FiniteElementBase = basix.ufl._ElementBase
 
 
 class SplineElement:
@@ -31,7 +31,7 @@ class SplineElement:
         return self._supdegree
 
     @property
-    def basix_ufl_element(self) -> BasixUFLElementBase:
+    def basix_ufl_element(self) -> FiniteElementBase:
         return self._element
 
     def tabulate(self, *args, **kwargs):
@@ -45,7 +45,7 @@ class SplineElement:
     @staticmethod
     def _create_cardinal_bspline_element_1D(
         degree: int, supdegree: int
-    ) -> BasixUFLElementBase:
+    ) -> FiniteElementBase:
         n_basis = degree + 1
         n_supbasis = supdegree + 1
 
