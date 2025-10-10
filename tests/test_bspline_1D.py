@@ -140,7 +140,7 @@ class TestBspline1DMethods:
         knots = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         degree = 2
         spline = Bspline1D(knots, degree)
-        assert spline.get_num_basis() == 3
+        assert spline.num_basis == 3
 
     def test_get_num_basis_periodic(self):
         """Test get_num_basis for periodic spline."""
@@ -148,7 +148,7 @@ class TestBspline1DMethods:
         knots = create_uniform_periodic_knot_vector(3, degree, start=0.0, end=1.0)
         spline = Bspline1D(knots, degree, periodic=True)
         # For periodic splines, the number of basis functions is reduced
-        assert spline.get_num_basis() == 3
+        assert spline.num_basis == 3
 
     def test_get_unique_knots_and_multiplicity_full(self):
         """Test get_unique_knots_and_multiplicity for full knot vector."""
@@ -184,14 +184,14 @@ class TestBspline1DMethods:
         degree = 2
         knots = create_uniform_open_knot_vector(num_intervals, degree)
         spline = Bspline1D(knots, degree)
-        assert spline.get_num_intervals() == num_intervals
+        assert spline.num_intervals == num_intervals
 
     def test_get_domain(self):
         """Test get_domain method."""
         knots = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         degree = 2
         spline = Bspline1D(knots, degree)
-        domain = spline.get_domain()
+        domain = spline.domain
         assert domain == (knots[degree], knots[-degree - 1])
 
     def test_has_left_end_open_true(self):
@@ -282,7 +282,7 @@ class TestBspline1DWithKnotGenerators:
         assert spline.degree == degree
         assert spline.periodic is False
         assert spline.has_open_knots() is True
-        assert spline.get_domain() == (knots[degree], knots[-degree - 1])
+        assert spline.domain == (knots[degree], knots[-degree - 1])
 
     def test_with_uniform_periodic_knot_vector(self):
         """Test Bspline1D with uniform periodic knot vector."""
@@ -292,7 +292,7 @@ class TestBspline1DWithKnotGenerators:
 
         assert spline.degree == degree
         assert spline.periodic is True
-        assert spline.get_domain() == (knots[degree], knots[-degree - 1])
+        assert spline.domain == (knots[degree], knots[-degree - 1])
 
     def test_with_cardinal_bspline_knot_vector(self):
         """Test Bspline1D with cardinal B-spline knot vector."""
@@ -302,7 +302,7 @@ class TestBspline1DWithKnotGenerators:
 
         assert spline.degree == degree
         assert spline.periodic is False
-        assert spline.get_domain() == (knots[degree], knots[-degree - 1])
+        assert spline.domain == (knots[degree], knots[-degree - 1])
 
 
 class TestBspline1DEdgeCases:
@@ -315,8 +315,8 @@ class TestBspline1DEdgeCases:
         spline = Bspline1D(knots, degree)
 
         assert spline.degree == degree
-        assert spline.get_num_basis() == 1
-        assert spline.get_domain() == (knots[degree], knots[-degree - 1])
+        assert spline.num_basis == 1
+        assert spline.domain == (knots[degree], knots[-degree - 1])
 
     def test_single_interval(self):
         """Test Bspline1D with single interval."""
@@ -324,7 +324,7 @@ class TestBspline1DEdgeCases:
         degree = 2
         spline = Bspline1D(knots, degree)
 
-        assert spline.get_num_intervals() == 1
+        assert spline.num_intervals == 1
         assert bool(spline.has_Bezier_like_knots()) is True
 
     def test_high_degree(self):
@@ -334,7 +334,7 @@ class TestBspline1DEdgeCases:
         spline = Bspline1D(knots, degree)
 
         assert spline.degree == degree
-        assert spline.get_num_basis() == (degree + 1)
+        assert spline.num_basis == (degree + 1)
         assert bool(spline.has_Bezier_like_knots()) is True
 
     def test_float32_precision(self):
@@ -357,14 +357,14 @@ class TestBspline1DIntegration:
         spline = Bspline1D(knots, degree)
 
         # Test that domain indices are consistent
-        domain = spline.get_domain()
+        domain = spline.domain
         unique_knots, _ = spline.get_unique_knots_and_multiplicity(in_domain=True)
 
         assert domain[0] == unique_knots[0]
         np.testing.assert_array_almost_equal(domain[1], unique_knots[-1])
 
         # Test that number of intervals is consistent
-        num_intervals = spline.get_num_intervals()
+        num_intervals = spline.num_intervals
         assert num_intervals == len(unique_knots) - 1
 
     def test_periodic_vs_non_periodic_consistency(self):
@@ -380,13 +380,13 @@ class TestBspline1DIntegration:
         spline_periodic = Bspline1D(knots_periodic, degree, periodic=True)
 
         # Both should have the same domain
-        assert spline_open.get_domain() == spline_periodic.get_domain()
+        assert spline_open.domain == spline_periodic.domain
 
         # Both should have the same number of intervals
-        assert spline_open.get_num_intervals() == spline_periodic.get_num_intervals()
+        assert spline_open.num_intervals == spline_periodic.num_intervals
 
         # But different number of basis functions
-        assert spline_open.get_num_basis() != spline_periodic.get_num_basis()
+        assert spline_open.num_basis != spline_periodic.num_basis
 
     def test_knot_snapping_consistency(self):
         """Test that knot snapping doesn't break consistency."""
@@ -396,9 +396,9 @@ class TestBspline1DIntegration:
         spline = Bspline1D(knots, degree, snap_knots=True)
 
         # After snapping, should still be valid
-        assert spline.get_num_basis() > 0
-        assert spline.get_num_intervals() > 0
+        assert spline.num_basis > 0
+        assert spline.num_intervals > 0
 
         # Domain should be well-defined
-        domain = spline.get_domain()
+        domain = spline.domain
         assert domain[0] < domain[1]

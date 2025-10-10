@@ -147,7 +147,7 @@ class TestEvaluateBsplineBasis:
 
         eval_pts = np.array([0.0, 0.5, 1.0])
 
-        t0, t1 = spline.get_domain()
+        t0, t1 = spline.domain
         result, first_idx = evaluate_Bspline_basis(spline, eval_pts * (t1 - t0) + t0)
 
         # Should be Bernstein basis for Bézier-like knots

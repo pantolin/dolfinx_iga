@@ -2,6 +2,7 @@
 with support for open, floating, and periodic knot vectors.
 """
 
+import functools
 from typing import Optional
 
 import numpy as np
@@ -28,19 +29,19 @@ class Bspline1D:
     Attributes:
         _tol (Float_32_64): Tolerance value for numerical comparisons
         _knots (FloatArray_32_64): Knot vector defining the B-spline
-        _degree (np.int_): Polynomial degree of the B-spline
+        _degree (int): Polynomial degree of the B-spline
         _periodic (bool): Whether the B-spline is periodic
     """
 
     _tol: Float_32_64
     _knots: FloatArray_32_64
-    _degree: np.int_
+    _degree: int
     _periodic: bool
 
     def __init__(
         self,
         knots: FloatLikeArray_32_64,
-        degree: np.int_,
+        degree: int,
         periodic: Optional[bool] = False,
         snap_knots: Optional[bool] = True,
     ):
@@ -49,7 +50,7 @@ class Bspline1D:
         Args:
             knots (FloatLikeArray_32_64): Knot vector defining the B-spline. Must be non-decreasing
                 and have at least 2*degree+2 elements.
-            degree (np.int_): Polynomial degree of the B-spline. Must be non-negative.
+            degree (int): Polynomial degree of the B-spline. Must be non-negative.
             periodic (Optional[bool]): Whether the B-spline is periodic. Defaults to False.
             snap_knots (Optional[bool]): Whether to snap nearby knots to avoid numerical issues.
                 Defaults to True.
@@ -67,7 +68,7 @@ class Bspline1D:
 
         self._tol = Bspline1D._create_tolerance(self.dtype)
 
-        self._degree = np.int_(degree)
+        self._degree = int(degree)
         self._periodic = bool(periodic)
 
         if snap_knots:
@@ -76,14 +77,14 @@ class Bspline1D:
     @staticmethod
     def _validate_input(
         knots: FloatLikeArray_32_64,
-        degree: np.int_,
+        degree: int,
         periodic: Optional[bool] = False,
     ) -> None:
         """Validate the B-spline input parameters.
 
         Args:
             knots (FloatLikeArray_32_64): Knot vector to validate.
-            degree (np.int_): Degree to validate.
+            degree (int): Degree to validate.
             periodic (Optional[bool]): Whether the B-spline is periodic.
 
         Raises:
@@ -155,11 +156,11 @@ class Bspline1D:
         self._knots = snapped_knots
 
     @property
-    def degree(self) -> np.int_:
+    def degree(self) -> int:
         """Get the polynomial degree of the B-spline.
 
         Returns:
-            np.int_: The degree.
+            int: The degree.
         """
         return self._degree
 
@@ -199,7 +200,8 @@ class Bspline1D:
         """
         return self._knots.dtype
 
-    def get_num_basis(self) -> np.int_:
+    @functools.cached_property
+    def num_basis(self) -> np.int_:
         """Get the number of basis functions.
 
         This depends on the knot vector length and the degree, but
@@ -212,6 +214,7 @@ class Bspline1D:
             self._knots, self._degree, self._periodic, self._tol
         )
 
+    @functools.cache
     def get_unique_knots_and_multiplicity(
         self,
         in_domain: Optional[bool] = False,
@@ -231,7 +234,8 @@ class Bspline1D:
             self._knots, self._degree, self._tol, in_domain
         )
 
-    def get_num_intervals(self) -> np.int_:
+    @functools.cached_property
+    def num_intervals(self) -> np.int_:
         """Get the number of intervals in the domain.
 
         Returns:
@@ -239,7 +243,7 @@ class Bspline1D:
 
         Example:
             >>> bspline = Bspline1D([0, 0, 0, 1, 2, 2, 2], 2)
-            >>> bspline.get_num_intervals()
+            >>> bspline.get_num_intervals
             2
         """
         unique_knots, _ = self.get_unique_knots_and_multiplicity(in_domain=True)
@@ -253,9 +257,10 @@ class Bspline1D:
         Returns:
             tuple[np.int_, np.int_]: Tuple of (start_index, end_index) defining the domain.
         """
-        return (self._degree, self._knots.size - self._degree - 1)
+        return (np.int_(self._degree), np.int_(self._knots.size - self._degree - 1))
 
-    def get_domain(self) -> tuple[Float_32_64, Float_32_64]:
+    @functools.cached_property
+    def domain(self) -> tuple[Float_32_64, Float_32_64]:
         """Get the knot vector domain.
 
         Returns:
@@ -263,7 +268,7 @@ class Bspline1D:
 
         Example:
             >>> bspline = Bspline1D([0, 0, 0, 1, 2, 2, 2], 2)
-            >>> bspline.get_domain()
+            >>> bspline.domain
             (0.0, 2.0)
         """
         i0, i1 = self._get_domain_indices()
@@ -329,7 +334,7 @@ class Bspline1D:
         return (
             (not self._periodic)
             and self.has_open_knots()
-            and self.get_num_basis() == (self._degree + 1)
+            and self.num_basis == (self._degree + 1)
         )
 
     def get_cardinal_intervals(self) -> npt.NDArray[np.bool_]:

@@ -242,7 +242,7 @@ def _evaluate_Bspline_basis_Bernstein_like(
     assert spline.has_Bezier_like_knots()
 
     # map the points to the reference interval [0, 1]
-    k0, k1 = spline.get_domain()
+    k0, k1 = spline.domain
     pts = (pts - k0) / (k1 - k0)
 
     # the first basis function is always the 0
@@ -292,7 +292,7 @@ def evaluate_Bspline_basis(
         is_in_domain_impl(spline.knots, spline.degree, pts, spline.tolerance)
     ):
         raise ValueError(
-            f"One or more values in pts are outside the knot vector domain {spline.get_domain()}"
+            f"One or more values in pts are outside the knot vector domain {spline.domain}"
         )
 
     if spline.has_Bezier_like_knots():

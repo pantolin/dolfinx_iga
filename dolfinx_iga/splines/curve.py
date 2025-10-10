@@ -127,13 +127,14 @@ class BsplineCurve:
         """
         return self.space.degree
 
-    def get_domain(self) -> tuple[np.floating, np.floating]:
+    @property
+    def domain(self) -> tuple[np.floating, np.floating]:
         """Get the domain of the B-spline curve.
 
         Returns:
             tuple[np.floating, np.floating]: Tuple of (start, end) defining the domain.
         """
-        return self._space.get_domain()
+        return self._space.domain
 
     def _validate(self) -> None:
         """Validate the curve parameters.
@@ -143,7 +144,7 @@ class BsplineCurve:
         """
         if self.control_points.ndim != 2:
             raise ValueError("Control points must be a 2D array")
-        if self.control_points.shape[0] != self.space.get_num_basis():
+        if self.control_points.shape[0] != self.space.num_basis:
             raise ValueError(
                 "Number of control points must match the number of basis functions"
             )

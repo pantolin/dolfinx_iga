@@ -402,7 +402,7 @@ def extraction_operators_tester(
     tt = np.linspace(0.0, 1.0 - tol, n_sample_pts)
     ref_vals = ref_eval(spline.degree, tt)
 
-    n_intervals = spline.get_num_intervals()
+    n_intervals = spline.num_intervals
     unique_knots = spline.get_unique_knots_and_multiplicity(in_domain=True)[0]
 
     for i in range(n_intervals):
@@ -591,7 +591,7 @@ class TestIntegration:
         lagrange_ops = create_Lagrange_extraction_operators(spline)
         cardinal_ops = create_cardinal_extraction_operators(spline)
 
-        num_intervals = spline.get_num_intervals()
+        num_intervals = spline.num_intervals
         degree = spline.degree
 
         assert bezier_ops.shape == (num_intervals, degree + 1, degree + 1)

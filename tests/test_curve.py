@@ -214,7 +214,7 @@ class TestBsplineCurveMethods:
         control_points = np.array([[0.0, 0.0], [1.0, 1.0], [2.0, 0.0]])
         curve = BsplineCurve(space, control_points)
 
-        domain = curve.get_domain()
+        domain = curve.domain
         assert domain == (0.0, 1.0)
 
     def test_evaluate_single_point(self):
@@ -311,7 +311,7 @@ class TestBsplineCurveWithDifferentSpaces:
         knots = create_uniform_open_knot_vector(3, 2, start=0.0, end=1.0)
         space = Bspline1D(knots, 2)
         # Need correct number of control points for the space
-        num_basis = space.get_num_basis()
+        num_basis = space.num_basis
         control_points = np.array(
             [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0], [1.5, 1.0], [2.0, 0.0]]
         )[:num_basis]
@@ -321,7 +321,7 @@ class TestBsplineCurveWithDifferentSpaces:
         assert curve.geom_dim == 2
         assert curve.num_control_points == num_basis
         assert curve.periodic is False
-        assert curve.get_domain() == (0.0, 1.0)
+        assert curve.domain == (0.0, 1.0)
 
     def test_with_periodic_knot_vector(self):
         """Test curve with periodic knot vector."""
@@ -333,14 +333,14 @@ class TestBsplineCurveWithDifferentSpaces:
         assert curve.degree == 2
         assert curve.geom_dim == 2
         assert curve.periodic is True
-        assert curve.get_domain() == (0.0, 1.0)
+        assert curve.domain == (0.0, 1.0)
 
     def test_with_high_degree(self):
         """Test curve with high degree."""
         knots = [0.0] * 6 + [1.0] * 6  # Degree 5
         space = Bspline1D(knots, 5)
         # Need correct number of control points for the space
-        num_basis = space.get_num_basis()
+        num_basis = space.num_basis
         # Create enough control points for the space
         control_points = np.array(
             [[0.0, 0.0], [1.0, 1.0], [2.0, 0.0], [3.0, 1.0], [4.0, 0.0], [5.0, 1.0]]
@@ -384,7 +384,7 @@ class TestBsplineCurveEdgeCases:
         knots = [0.0, 0.0, 0.0, 1.0, 1.0, 1.0]
         space = Bspline1D(knots, 2)
         # Need correct number of control points for the space
-        num_basis = space.get_num_basis()
+        num_basis = space.num_basis
         control_points = np.array([[1.0, 2.0], [2.0, 3.0], [3.0, 4.0]])[:num_basis]
         curve = BsplineCurve(space, control_points)
 
@@ -462,8 +462,8 @@ class TestBsplineCurveIntegration:
         space_periodic = Bspline1D(knots_periodic, 2, periodic=True)
 
         # Create curves with same control points (adjusted for different basis counts)
-        num_basis_open = space_open.get_num_basis()
-        num_basis_periodic = space_periodic.get_num_basis()
+        num_basis_open = space_open.num_basis
+        num_basis_periodic = space_periodic.num_basis
         control_points_open = np.array(
             [[0.0, 0.0], [0.5, 1.0], [1.0, 0.0], [1.5, 1.0], [2.0, 0.0]]
         )[:num_basis_open]
@@ -475,7 +475,7 @@ class TestBsplineCurveIntegration:
         curve_periodic = BsplineCurve(space_periodic, control_points_periodic)
 
         # Both should have same domain
-        assert curve_open.get_domain() == curve_periodic.get_domain()
+        assert curve_open.domain == curve_periodic.domain
 
         # Both should evaluate without errors
         pts = [0.0, 0.5, 1.0]
