@@ -5,10 +5,10 @@ import pytest
 
 from dolfinx_iga.splines.basis_1D import (
     _prepare_pts_for_evaluation,
-    evaluate_Bernstein_basis,
-    evaluate_Bspline_basis,
-    evaluate_Lagrange_basis,
-    evaluate_monomial_basis,
+    evaluate_Bernstein_basis_1D,
+    evaluate_Bspline_basis_1D,
+    evaluate_Lagrange_basis_1D,
+    evaluate_monomial_basis_1D,
 )
 from dolfinx_iga.splines.bspline_1D import Bspline1D
 from dolfinx_iga.splines.knots import (
@@ -51,32 +51,32 @@ class TestEvaluateBernsteinBasis:
 
     def test_degree_zero(self):
         """Test degree 0 Bernstein basis (constant function)."""
-        result = evaluate_Bernstein_basis(0, [0.0, 0.5, 1.0])
+        result = evaluate_Bernstein_basis_1D(0, [0.0, 0.5, 1.0])
         expected = np.array([[1.0], [1.0], [1.0]])
         np.testing.assert_array_equal(result, expected)
 
     def test_degree_one(self):
         """Test degree 1 Bernstein basis (linear functions)."""
-        result = evaluate_Bernstein_basis(1, [0.0, 0.5, 1.0])
+        result = evaluate_Bernstein_basis_1D(1, [0.0, 0.5, 1.0])
         expected = np.array([[1.0, 0.0], [0.5, 0.5], [0.0, 1.0]])
         np.testing.assert_array_almost_equal(result, expected)
 
     def test_degree_two(self):
         """Test degree 2 Bernstein basis (quadratic functions)."""
-        result = evaluate_Bernstein_basis(2, [0.0, 0.5, 1.0])
+        result = evaluate_Bernstein_basis_1D(2, [0.0, 0.5, 1.0])
         expected = np.array([[1.0, 0.0, 0.0], [0.25, 0.5, 0.25], [0.0, 0.0, 1.0]])
         np.testing.assert_array_almost_equal(result, expected)
 
     def test_negative_degree_error(self):
         """Test that negative degree raises ValueError."""
         with pytest.raises(ValueError, match="degree must be non-negative"):
-            evaluate_Bernstein_basis(-1, [0.0, 0.5, 1.0])
+            evaluate_Bernstein_basis_1D(-1, [0.0, 0.5, 1.0])
 
     def test_partition_of_unity(self):
         """Test that Bernstein basis functions sum to 1 (partition of unity)."""
         pts = np.linspace(0.0, 1.0, 11)
         for degree in [1, 2, 3, 4]:
-            result = evaluate_Bernstein_basis(degree, pts)
+            result = evaluate_Bernstein_basis_1D(degree, pts)
             sums = np.sum(result, axis=1)
             np.testing.assert_array_almost_equal(sums, np.ones_like(sums))
 
@@ -86,26 +86,26 @@ class TestEvaluateMonomialBasis:
 
     def test_degree_zero(self):
         """Test degree 0 monomial basis (constant function)."""
-        result = evaluate_monomial_basis(0, [0.0, 0.5, 1.0])
+        result = evaluate_monomial_basis_1D(0, [0.0, 0.5, 1.0])
         expected = np.array([[1.0], [1.0], [1.0]])
         np.testing.assert_array_equal(result, expected)
 
     def test_degree_one(self):
         """Test degree 1 monomial basis (1, t)."""
-        result = evaluate_monomial_basis(1, [0.0, 0.5, 1.0])
+        result = evaluate_monomial_basis_1D(1, [0.0, 0.5, 1.0])
         expected = np.array([[1.0, 0.0], [1.0, 0.5], [1.0, 1.0]])
         np.testing.assert_array_equal(result, expected)
 
     def test_degree_two(self):
         """Test degree 2 monomial basis (1, t, t^2)."""
-        result = evaluate_monomial_basis(2, [0.0, 0.5, 1.0])
+        result = evaluate_monomial_basis_1D(2, [0.0, 0.5, 1.0])
         expected = np.array([[1.0, 0.0, 0.0], [1.0, 0.5, 0.25], [1.0, 1.0, 1.0]])
         np.testing.assert_array_equal(result, expected)
 
     def test_negative_degree_error(self):
         """Test that negative degree raises ValueError."""
         with pytest.raises(ValueError, match="degree must be non-negative"):
-            evaluate_monomial_basis(-1, [0.0, 0.5, 1.0])
+            evaluate_monomial_basis_1D(-1, [0.0, 0.5, 1.0])
 
 
 class TestEvaluateLagrangeBasis:
@@ -116,18 +116,18 @@ class TestEvaluateLagrangeBasis:
         with pytest.raises(
             ValueError, match="Lagrange basis degree must be at least 1"
         ):
-            evaluate_Lagrange_basis(0, [0.0, 0.5, 1.0])
+            evaluate_Lagrange_basis_1D(0, [0.0, 0.5, 1.0])
 
     def test_degree_one(self):
         """Test degree 1 Lagrange basis."""
-        result = evaluate_Lagrange_basis(1, [0.0, 0.5, 1.0])
+        result = evaluate_Lagrange_basis_1D(1, [0.0, 0.5, 1.0])
         # Lagrange basis should be 1 at nodes and 0 at other nodes
         np.testing.assert_array_almost_equal(result[0], [1.0, 0.0])
         np.testing.assert_array_almost_equal(result[2], [0.0, 1.0])
 
     def test_degree_two(self):
         """Test degree 2 Lagrange basis."""
-        result = evaluate_Lagrange_basis(2, [0.0, 0.5, 1.0])
+        result = evaluate_Lagrange_basis_1D(2, [0.0, 0.5, 1.0])
         # Check that basis functions are 1 at their respective nodes
         # Note: basix ordering may be different, so just check shape and partition of unity
         assert result.shape == (3, 3)
@@ -148,10 +148,10 @@ class TestEvaluateBsplineBasis:
         eval_pts = np.array([0.0, 0.5, 1.0])
 
         t0, t1 = spline.domain
-        result, first_idx = evaluate_Bspline_basis(spline, eval_pts * (t1 - t0) + t0)
+        result, first_idx = evaluate_Bspline_basis_1D(spline, eval_pts * (t1 - t0) + t0)
 
         # Should be Bernstein basis for Bézier-like knots
-        expected = evaluate_Bernstein_basis(degree, eval_pts)
+        expected = evaluate_Bernstein_basis_1D(degree, eval_pts)
         np.testing.assert_array_almost_equal(result, expected)
         np.testing.assert_array_equal(first_idx, [0, 0, 0])
 
@@ -159,7 +159,7 @@ class TestEvaluateBsplineBasis:
         """Test evaluation with general knot vector."""
         knots = [0.0, 0.0, 0.0, 0.5, 1.0, 1.0, 1.0]
         spline = Bspline1D(knots, 2)
-        result, first_idx = evaluate_Bspline_basis(spline, [0.25, 0.75])
+        result, first_idx = evaluate_Bspline_basis_1D(spline, [0.25, 0.75])
 
         # Check that result has correct shape
         assert result.shape == (2, 3)
@@ -175,13 +175,13 @@ class TestEvaluateBsplineBasis:
         spline = Bspline1D(knots, 2)
 
         with pytest.raises(ValueError, match="outside the knot vector domain"):
-            evaluate_Bspline_basis(spline, [-0.1])
+            evaluate_Bspline_basis_1D(spline, [-0.1])
 
     def test_periodic_spline(self):
         """Test evaluation with periodic spline."""
         knots = create_uniform_periodic_knot_vector(3, 2, start=0.0, end=1.0)
         spline = Bspline1D(knots, 2, periodic=True)
-        result, first_idx = evaluate_Bspline_basis(spline, [0.0, 0.5, 1.0])
+        result, first_idx = evaluate_Bspline_basis_1D(spline, [0.0, 0.5, 1.0])
 
         # Check that result has correct shape
         assert result.shape == (3, 3)

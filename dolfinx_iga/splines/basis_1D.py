@@ -45,7 +45,9 @@ def _prepare_pts_for_evaluation(pts: FloatLike_32_64) -> FloatArray_32_64:
     return pts
 
 
-def evaluate_Bernstein_basis(degree: np.int_, pts: FloatLike_32_64) -> FloatArray_32_64:
+def evaluate_Bernstein_basis_1D(
+    degree: np.int_, pts: FloatLike_32_64
+) -> FloatArray_32_64:
     """Evaluate the Bernstein basis polynomials of the given degree at the given points.
 
     Args:
@@ -83,7 +85,7 @@ def evaluate_Bernstein_basis(degree: np.int_, pts: FloatLike_32_64) -> FloatArra
     return coeffs * powers_0 * powers_1  # broadcasted: (..., degree+1)
 
 
-def evaluate_cardinal_Bspline_basis(
+def evaluate_cardinal_Bspline_basis_1D(
     degree: int,
     pts: FloatLike_32_64,
 ) -> FloatArray_32_64:
@@ -144,7 +146,7 @@ def evaluate_cardinal_Bspline_basis(
     return basis
 
 
-def evaluate_Lagrange_basis(
+def evaluate_Lagrange_basis_1D(
     degree: np.int_,
     pts: FloatLike_32_64,
     lagrange_variant: LagrangeVariant = LagrangeVariant.equispaced,
@@ -185,7 +187,9 @@ def evaluate_Lagrange_basis(
     return element.tabulate(0, pts)[0, :, :, 0]
 
 
-def evaluate_monomial_basis(degree: np.int_, pts: FloatLike_32_64) -> FloatArray_32_64:
+def evaluate_monomial_basis_1D(
+    degree: np.int_, pts: FloatLike_32_64
+) -> FloatArray_32_64:
     """Evaluate the monomial basis functions up to the given degree at the given points.
 
     Args:
@@ -218,7 +222,7 @@ def evaluate_monomial_basis(degree: np.int_, pts: FloatLike_32_64) -> FloatArray
     return np.power(pts[..., np.newaxis], i)
 
 
-def _evaluate_Bspline_basis_Bernstein_like(
+def _evaluate_Bspline_basis_Bernstein_like_1D(
     spline: "Bspline1D",
     pts: FloatArray_32_64,
 ) -> tuple[FloatArray_32_64, IntArray]:
@@ -248,10 +252,10 @@ def _evaluate_Bspline_basis_Bernstein_like(
     # the first basis function is always the 0
     first_basis_ids = np.zeros(pts.size, dtype=np.int_)
 
-    return evaluate_Bernstein_basis(spline.degree, pts), first_basis_ids
+    return evaluate_Bernstein_basis_1D(spline.degree, pts), first_basis_ids
 
 
-def evaluate_Bspline_basis(
+def evaluate_Bspline_basis_1D(
     spline: "Bspline1D", pts: FloatLike_32_64
 ) -> tuple[npt.NDArray[np.floating], npt.NDArray[np.int32]]:
     """Evaluate B-spline basis functions at given points.
@@ -296,7 +300,7 @@ def evaluate_Bspline_basis(
         )
 
     if spline.has_Bezier_like_knots():
-        return _evaluate_Bspline_basis_Bernstein_like(spline, pts)
+        return _evaluate_Bspline_basis_Bernstein_like_1D(spline, pts)
     else:
         return evaluate_basis_Cox_de_Boor_impl(
             spline.knots, spline.degree, spline.periodic, spline.tolerance, pts

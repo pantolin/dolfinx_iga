@@ -9,7 +9,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..utils.types import FloatLike_32_64
-from .basis_1D import evaluate_Bspline_basis
+from .basis_1D import evaluate_Bspline_basis_1D
 from .bspline_1D import Bspline1D
 
 
@@ -182,7 +182,7 @@ class BsplineCurve:
                    [2.125 0.375],
                    [2.445 0.535]])
         """
-        basis, first_basis_ids = evaluate_Bspline_basis(self.space, pts)
+        basis, first_basis_ids = evaluate_Bspline_basis_1D(self.space, pts)
         # Create a 2D array: each row is [id, id+1, ..., id+degree]
         bases_ids = first_basis_ids[:, None] + np.arange(self.degree + 1)
 

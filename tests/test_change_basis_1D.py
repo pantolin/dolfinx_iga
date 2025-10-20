@@ -5,11 +5,11 @@ import pytest
 from basix import LagrangeVariant
 
 from dolfinx_iga.splines.basis_1D import (
-    evaluate_Bernstein_basis,
-    evaluate_Bspline_basis,
-    evaluate_cardinal_Bspline_basis,
-    evaluate_Lagrange_basis,
-    evaluate_monomial_basis,
+    evaluate_Bernstein_basis_1D,
+    evaluate_Bspline_basis_1D,
+    evaluate_cardinal_Bspline_basis_1D,
+    evaluate_Lagrange_basis_1D,
+    evaluate_monomial_basis_1D,
 )
 from dolfinx_iga.splines.bspline_1D import Bspline1D
 from dolfinx_iga.splines.change_basis_1D import (
@@ -182,8 +182,8 @@ class TestLagrangeToBernsteinBasisOperator:
             C = create_Lagrange_to_Bernstein_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            bernsteins = evaluate_Bernstein_basis(degree, tt)
-            lagranges = evaluate_Lagrange_basis(degree, tt)
+            bernsteins = evaluate_Bernstein_basis_1D(degree, tt)
+            lagranges = evaluate_Lagrange_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(bernsteins, lagranges @ C.T)
 
 
@@ -216,8 +216,8 @@ class TestBernsteinToLagrangeBasisOperator:
             C = create_Bernstein_to_Lagrange_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            bernsteins = evaluate_Bernstein_basis(degree, tt)
-            lagranges = evaluate_Lagrange_basis(degree, tt)
+            bernsteins = evaluate_Bernstein_basis_1D(degree, tt)
+            lagranges = evaluate_Lagrange_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(bernsteins @ C.T, lagranges)
 
 
@@ -258,8 +258,8 @@ class TestBernsteinToCardinalBasisOperator:
             C = create_Bernstein_to_cardinal_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            bernsteins = evaluate_Bernstein_basis(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis(degree, tt)
+            bernsteins = evaluate_Bernstein_basis_1D(degree, tt)
+            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(bernsteins @ C.T, cardinals)
 
 
@@ -287,8 +287,8 @@ class TestCardinalToBernsteinBasisOperator:
             C = create_cardinal_to_Bernstein_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            bernsteins = evaluate_Bernstein_basis(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis(degree, tt)
+            bernsteins = evaluate_Bernstein_basis_1D(degree, tt)
+            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(bernsteins, cardinals @ C.T)
 
 
@@ -329,8 +329,8 @@ class TestMonomialToCardinalBasisOperator:
             C = create_monomial_to_cardinal_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            monomials = evaluate_monomial_basis(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis(degree, tt)
+            monomials = evaluate_monomial_basis_1D(degree, tt)
+            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(cardinals, monomials @ C.T)
 
 
@@ -358,8 +358,8 @@ class TestCardinalToMonomialBasisOperator:
             C = create_cardinal_to_monomial_basis_operator(degree)
             n_pts = 10
             tt = np.linspace(0.0, 1.0, n_pts)
-            monomials = evaluate_monomial_basis(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis(degree, tt)
+            monomials = evaluate_monomial_basis_1D(degree, tt)
+            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
             np.testing.assert_array_almost_equal(monomials, cardinals @ C.T)
 
 
@@ -407,7 +407,7 @@ def extraction_operators_tester(
 
     for i in range(n_intervals):
         new_tt = tt * (unique_knots[i + 1] - unique_knots[i]) + unique_knots[i]
-        bspline_vals, _ = evaluate_Bspline_basis(spline, new_tt)
+        bspline_vals, _ = evaluate_Bspline_basis_1D(spline, new_tt)
         C = ops[i]
         np.testing.assert_array_almost_equal(bspline_vals, ref_vals @ C.T)
 
@@ -451,7 +451,7 @@ class TestBezierExtractionOperators:
 
         for spline in splines:
             ops = create_Bezier_extraction_operators(spline)
-            extraction_operators_tester(spline, evaluate_Bernstein_basis, ops)
+            extraction_operators_tester(spline, evaluate_Bernstein_basis_1D, ops)
 
 
 class TestLagrangeExtractionOperators:
@@ -500,7 +500,7 @@ class TestLagrangeExtractionOperators:
 
         for spline in splines:
             ops = create_Lagrange_extraction_operators(spline)
-            extraction_operators_tester(spline, evaluate_Lagrange_basis, ops)
+            extraction_operators_tester(spline, evaluate_Lagrange_basis_1D, ops)
 
 
 class TestCardinalExtractionOperators:
@@ -548,7 +548,7 @@ class TestCardinalExtractionOperators:
 
         for spline in splines:
             ops = create_cardinal_extraction_operators(spline)
-            extraction_operators_tester(spline, evaluate_cardinal_Bspline_basis, ops)
+            extraction_operators_tester(spline, evaluate_cardinal_Bspline_basis_1D, ops)
 
 
 class TestIntegration:

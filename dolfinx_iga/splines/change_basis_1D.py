@@ -15,8 +15,8 @@ from scipy.special import binom
 
 from ..utils.types import FloatArray_32_64, FloatArray_64
 from .basis_1D import (
-    evaluate_Bernstein_basis,
-    evaluate_cardinal_Bspline_basis,
+    evaluate_Bernstein_basis_1D,
+    evaluate_cardinal_Bspline_basis_1D,
 )
 from .bspline_1D_impl import (
     create_bspline_Bezier_extraction_operators_impl,
@@ -91,7 +91,7 @@ def create_Lagrange_to_Bernstein_basis_operator(
     )
     points = element.points.reshape(-1)
 
-    return evaluate_Bernstein_basis(degree, points).T
+    return evaluate_Bernstein_basis_1D(degree, points).T
 
 
 def create_Bernstein_to_Lagrange_basis_operator(
@@ -200,10 +200,10 @@ def create_Bernstein_to_cardinal_basis_operator(
         raise ValueError("Degree must be non-negative")
 
     def bernstein(pts):
-        return evaluate_Bernstein_basis(degree, pts)
+        return evaluate_Bernstein_basis_1D(degree, pts)
 
     def cardinal(pts):
-        return evaluate_cardinal_Bspline_basis(degree, pts)
+        return evaluate_cardinal_Bspline_basis_1D(degree, pts)
 
     return _create_change_basis_operator(
         new_basis_eval=bernstein,
@@ -235,10 +235,10 @@ def create_cardinal_to_Bernstein_basis_operator(
         raise ValueError("Degree must be non-negative")
 
     def cardinal(pts):
-        return evaluate_cardinal_Bspline_basis(degree, pts)
+        return evaluate_cardinal_Bspline_basis_1D(degree, pts)
 
     def bernstein(pts):
-        return evaluate_Bernstein_basis(degree, pts)
+        return evaluate_Bernstein_basis_1D(degree, pts)
 
     return _create_change_basis_operator(
         new_basis_eval=cardinal,
