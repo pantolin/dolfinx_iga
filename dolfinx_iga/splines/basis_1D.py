@@ -187,41 +187,6 @@ def evaluate_Lagrange_basis_1D(
     return element.tabulate(0, pts)[0, :, :, 0]
 
 
-def evaluate_monomial_basis_1D(
-    degree: np.int_, pts: FloatLike_32_64
-) -> FloatArray_32_64:
-    """Evaluate the monomial basis functions up to the given degree at the given points.
-
-    Args:
-        degree (np.int_): Maximum degree of monomials. Must be non-negative.
-        pts (FloatLike_32_64): Evaluation points.
-
-    Returns:
-        FloatArray_32_64: Array of shape (number pts, degree+1) containing monomial
-            basis function values [1, t, t^2, ..., t^degree] at each point.
-
-    Raises:
-        ValueError: If degree is negative.
-
-    Example:
-        >>> evaluate_monomial_basis(2, [0.0, 0.5, 0.75, 1.0])
-        array([[1.  , 0.  , 0.  ],
-               [1.  , 0.5 , 0.25],
-               [1.  , 0.75, 0.5625],
-               [1.  , 1.  , 1.  ]])
-    """
-    if degree < 0:
-        raise ValueError("degree must be non-negative")
-
-    pts = _prepare_pts_for_evaluation(pts)
-
-    dtype = pts.dtype
-
-    i = np.arange(degree + 1, dtype=dtype)
-
-    return np.power(pts[..., np.newaxis], i)
-
-
 def _evaluate_Bspline_basis_Bernstein_like_1D(
     spline: "Bspline1D",
     pts: FloatArray_32_64,

@@ -9,7 +9,6 @@ from dolfinx_iga.splines.basis_1D import (
     evaluate_Bspline_basis_1D,
     evaluate_cardinal_Bspline_basis_1D,
     evaluate_Lagrange_basis_1D,
-    evaluate_monomial_basis_1D,
 )
 from dolfinx_iga.splines.bspline_1D import Bspline1D
 from dolfinx_iga.splines.change_basis_1D import (
@@ -20,10 +19,8 @@ from dolfinx_iga.splines.change_basis_1D import (
     create_Bezier_extraction_operators,
     create_cardinal_extraction_operators,
     create_cardinal_to_Bernstein_basis_operator,
-    create_cardinal_to_monomial_basis_operator,
     create_Lagrange_extraction_operators,
     create_Lagrange_to_Bernstein_basis_operator,
-    create_monomial_to_cardinal_basis_operator,
 )
 from dolfinx_iga.splines.knots import create_uniform_open_knot_vector
 from dolfinx_iga.utils.tolerance import get_default_tolerance
@@ -292,77 +289,6 @@ class TestCardinalToBernsteinBasisOperator:
             np.testing.assert_array_almost_equal(bernsteins, cardinals @ C.T)
 
 
-class TestMonomialToCardinalBasisOperator:
-    """Test the create_monomial_to_cardinal_basis_operator function."""
-
-    def test_degree_zero(self):
-        """Test degree 0 transformation."""
-        result = create_monomial_to_cardinal_basis_operator(0)
-
-        assert result.shape == (1, 1)
-        np.testing.assert_array_almost_equal(result, np.eye(1))
-
-    def test_degree_one(self):
-        """Test degree 1 transformation."""
-        result = create_monomial_to_cardinal_basis_operator(1)
-
-        assert result.shape == (2, 2)
-        # Should be invertible
-        assert np.linalg.det(result) != 0
-
-    def test_degree_two(self):
-        """Test degree 2 transformation."""
-        result = create_monomial_to_cardinal_basis_operator(2)
-
-        assert result.shape == (3, 3)
-        # Should be invertible
-        assert np.linalg.det(result) != 0
-
-    def test_negative_degree_error(self):
-        """Test that negative degree raises ValueError."""
-        with pytest.raises(ValueError, match="Degree must be non-negative"):
-            create_monomial_to_cardinal_basis_operator(-1)
-
-    def test_values(self):
-        """Test that monomial evaluations transformed with the operator return cardinal evaluations."""
-        for degree in [1, 2, 3, 4]:
-            C = create_monomial_to_cardinal_basis_operator(degree)
-            n_pts = 10
-            tt = np.linspace(0.0, 1.0, n_pts)
-            monomials = evaluate_monomial_basis_1D(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
-            np.testing.assert_array_almost_equal(cardinals, monomials @ C.T)
-
-
-class TestCardinalToMonomialBasisOperator:
-    """Test the create_cardinal_to_monomial_basis_operator function."""
-
-    def test_inverse_relationship(self):
-        """Test that cardinal to monomial is inverse of monomial to cardinal."""
-        degree = 2
-        monomial_to_cardinal = create_monomial_to_cardinal_basis_operator(degree)
-        cardinal_to_monomial = create_cardinal_to_monomial_basis_operator(degree)
-
-        # Should be inverse matrices
-        identity = monomial_to_cardinal @ cardinal_to_monomial
-        np.testing.assert_array_almost_equal(identity, np.eye(degree + 1))
-
-    def test_negative_degree_error(self):
-        """Test that negative degree raises ValueError."""
-        with pytest.raises(ValueError, match="Degree must be non-negative"):
-            create_cardinal_to_monomial_basis_operator(-1)
-
-    def test_values(self):
-        """Test that cardinal evaluations transformed with the operator return monomial evaluations."""
-        for degree in [1, 2, 3, 4]:
-            C = create_cardinal_to_monomial_basis_operator(degree)
-            n_pts = 10
-            tt = np.linspace(0.0, 1.0, n_pts)
-            monomials = evaluate_monomial_basis_1D(degree, tt)
-            cardinals = evaluate_cardinal_Bspline_basis_1D(degree, tt)
-            np.testing.assert_array_almost_equal(monomials, cardinals @ C.T)
-
-
 def create_uniform_spline(
     num_intervals: int, degree: int, continuity: int = None
 ) -> Bspline1D:
@@ -561,10 +487,9 @@ class TestIntegration:
         # Create transformation matrices
         lagrange_to_bernstein = create_Lagrange_to_Bernstein_basis_operator(degree)
         bernstein_to_cardinal = create_Bernstein_to_cardinal_basis_operator(degree)
-        cardinal_to_monomial = create_cardinal_to_monomial_basis_operator(degree)
 
-        # Chain transformation: Lagrange -> Bernstein -> Cardinal -> Monomial
-        chain = cardinal_to_monomial @ bernstein_to_cardinal @ lagrange_to_bernstein
+        # Chain transformation: Lagrange -> Bernstein -> Cardinal
+        chain = bernstein_to_cardinal @ lagrange_to_bernstein
 
         # Should be invertible
         assert np.linalg.det(chain) != 0
@@ -575,11 +500,9 @@ class TestIntegration:
             # Test that all transformation matrices are invertible
             lagrange_to_bernstein = create_Lagrange_to_Bernstein_basis_operator(degree)
             bernstein_to_cardinal = create_Bernstein_to_cardinal_basis_operator(degree)
-            monomial_to_cardinal = create_monomial_to_cardinal_basis_operator(degree)
 
             assert np.linalg.det(lagrange_to_bernstein) != 0
             assert np.linalg.det(bernstein_to_cardinal) != 0
-            assert np.linalg.det(monomial_to_cardinal) != 0
 
     def test_extraction_operators_consistency(self):
         """Test consistency of extraction operators."""

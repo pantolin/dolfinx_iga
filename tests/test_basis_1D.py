@@ -8,7 +8,6 @@ from dolfinx_iga.splines.basis_1D import (
     evaluate_Bernstein_basis_1D,
     evaluate_Bspline_basis_1D,
     evaluate_Lagrange_basis_1D,
-    evaluate_monomial_basis_1D,
 )
 from dolfinx_iga.splines.bspline_1D import Bspline1D
 from dolfinx_iga.splines.knots import (
@@ -79,33 +78,6 @@ class TestEvaluateBernsteinBasis:
             result = evaluate_Bernstein_basis_1D(degree, pts)
             sums = np.sum(result, axis=1)
             np.testing.assert_array_almost_equal(sums, np.ones_like(sums))
-
-
-class TestEvaluateMonomialBasis:
-    """Test monomial basis function evaluation."""
-
-    def test_degree_zero(self):
-        """Test degree 0 monomial basis (constant function)."""
-        result = evaluate_monomial_basis_1D(0, [0.0, 0.5, 1.0])
-        expected = np.array([[1.0], [1.0], [1.0]])
-        np.testing.assert_array_equal(result, expected)
-
-    def test_degree_one(self):
-        """Test degree 1 monomial basis (1, t)."""
-        result = evaluate_monomial_basis_1D(1, [0.0, 0.5, 1.0])
-        expected = np.array([[1.0, 0.0], [1.0, 0.5], [1.0, 1.0]])
-        np.testing.assert_array_equal(result, expected)
-
-    def test_degree_two(self):
-        """Test degree 2 monomial basis (1, t, t^2)."""
-        result = evaluate_monomial_basis_1D(2, [0.0, 0.5, 1.0])
-        expected = np.array([[1.0, 0.0, 0.0], [1.0, 0.5, 0.25], [1.0, 1.0, 1.0]])
-        np.testing.assert_array_equal(result, expected)
-
-    def test_negative_degree_error(self):
-        """Test that negative degree raises ValueError."""
-        with pytest.raises(ValueError, match="degree must be non-negative"):
-            evaluate_monomial_basis_1D(-1, [0.0, 0.5, 1.0])
 
 
 class TestEvaluateLagrangeBasis:

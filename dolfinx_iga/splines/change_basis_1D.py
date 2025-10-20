@@ -5,13 +5,11 @@ polynomial bases including Lagrange, Bernstein, cardinal B-spline, and monomial
 bases, as well as B-splines.
 """
 
-from math import factorial
 from typing import TYPE_CHECKING
 
 import numpy as np
 import numpy.typing as npt
 from basix import CellType, ElementFamily, LagrangeVariant, create_element
-from scipy.special import binom
 
 from ..utils.types import FloatArray_32_64, FloatArray_64
 from .basis_1D import (
@@ -326,82 +324,3 @@ def create_cardinal_extraction_operators(spline: "Bspline1D") -> FloatArray_32_6
     for i in np.where(spline.get_cardinal_intervals())[0]:
         C[i, :, :] = np.eye(spline.degree + 1, dtype=spline.dtype)
     return C
-
-
-def create_monomial_to_cardinal_basis_operator(
-    degree: np.int_,
-    dtype: np.dtype = np.float64,
-) -> npt.NDArray[np.floating]:
-    r"""Create transformation matrix from monomials to cardinal B-spline basis.
-
-    The formula for the matrix coefficient \( c_{ij} \) is:
-        \[
-        c_{ij} = \frac{1}{p!} \binom{p}{j} \sum_{k=0}^{p-i} \binom{p+1}{k} (-1)^k (p-i-k)^{p-j}
-        \]
-    where:
-        - \( p \) is the degree,
-        - \( i \) is the cardinal B-spline basis function index,
-        - \( \ell \) is the monomial power index.
-
-    Args:
-        degree (np.int_): The degree of the basis functions. Must be non-negative.
-        dtype (np.dtype): Floating point type for the output matrix.
-            Defaults to np.float64.
-
-    Returns:
-        npt.NDArray[np.floating]: (degree+1, degree+1) transformation matrix C such that
-            C @ [monomial values] = [cardinal values].
-
-    Raises:
-        ValueError: If degree is negative.
-    """
-
-    if degree < 0:
-        raise ValueError("Degree must be non-negative")
-
-    # Precompute binomial coefficients for efficiency
-    outer_terms = np.array(
-        [binom(degree, k) for k in range(degree + 1)], dtype=dtype
-    ) / factorial(degree)
-    binom_deg1 = np.array(
-        [binom(degree + 1, j) for j in range(degree + 2)], dtype=dtype
-    )
-
-    # Initialize a matrix to store the coefficients c_il.
-    coefficients = np.zeros((degree + 1, degree + 1), dtype=dtype)
-    dtype = coefficients.dtype
-
-    # Vectorize over k (monomial power) for each i (basis function)
-    for i in range(degree + 1):
-        js = np.arange(degree - i + 1, dtype=dtype)
-        # For all k at once, shape (degree+1, js.size)
-        power_terms = np.power(
-            dtype.type(degree - i) - js, degree - np.arange(degree + 1)[:, None]
-        )
-        terms = binom_deg1[js.astype(int)] * ((-1) ** js) * power_terms
-        # Sum over js axis, multiply by outer_terms[k]
-        coefficients[i, :] = outer_terms * np.sum(terms, axis=1)
-
-    return coefficients
-
-
-def create_cardinal_to_monomial_basis_operator(
-    degree: np.int_,
-    dtype: np.dtype = np.float64,
-) -> npt.NDArray[np.floating]:
-    """Create transformation matrix from cardinal B-spline to the monomial basis.
-
-    Args:
-        degree (np.int_): The degree of the basis functions. Must be non-negative.
-        dtype (np.dtype): Floating point type for the output matrix.
-            Defaults to np.float64.
-
-    Returns:
-        npt.NDArray[np.floating]: (degree+1, degree+1) transformation matrix C such that
-            C @ [cardinal values] = [monomial values].
-
-    Raises:
-        ValueError: If degree is negative.
-    """
-    C = create_monomial_to_cardinal_basis_operator(degree, dtype)
-    return np.linalg.inv(C)
