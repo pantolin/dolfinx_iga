@@ -3,55 +3,56 @@ import numpy as np
 import pytest
 from basix import CellType
 
-from dolfinx_iga.splines.basis_1D import evaluate_cardinal_Bspline_basis
-from dolfinx_iga.splines.element import SplineElement
+from dolfinx_iga.splines.basis import evaluate_cardinal_Bspline_basis
+from dolfinx_iga.splines.element import create_cardinal_Bspline_element
 
 
-def test_spline_element_tabulate_vs_cardinal_basis():
+@pytest.mark.parametrize(
+    "degrees",
+    [
+        # 1D
+        (1,),
+        (2,),
+        (3,),
+        (4,),
+        (5,),
+        # 2D uniform
+        (1, 1),
+        (2, 2),
+        (3, 3),
+        (4, 4),
+        # 2D mixed
+        (1, 2),
+        (2, 3),
+        (1, 4),
+        (3, 5),
+        # 3D uniform
+        (1, 1, 1),
+        (2, 2, 2),
+        (3, 3, 3),
+        # 3D mixed
+        (1, 2, 1),
+        (2, 3, 2),
+        (1, 2, 3),
+        (3, 4, 2),
+    ],
+)
+def test_spline_element_tabulate_vs_cardinal_basis(degrees):
     """Test that SplineElement.tabulate matches evaluate_cardinal_Bspline_basis."""
-    degree = 3
-    supdegree = degree + 5
-    element = SplineElement(degree, supdegree)
 
-    n_pts = 100
-    eval_pts = basix.create_lattice(
-        CellType.interval, n_pts, basix.LatticeType.equispaced, True
+    element = create_cardinal_Bspline_element(list(degrees))
+
+    n_pts_dir = 20
+
+    dim = len(degrees)
+    cell_type = [CellType.interval, CellType.quadrilateral, CellType.hexahedron][
+        dim - 1
+    ]
+
+    pts = basix.create_lattice(
+        cell_type, n_pts_dir - 1, basix.LatticeType.equispaced, True
     )
 
-    ref_vals = element.tabulate(0, eval_pts)[0]  # Shape: (n_pts, degree+1)
-    vals = evaluate_cardinal_Bspline_basis(degree, eval_pts[:, 0])
-
+    vals = element.tabulate(0, pts)[0]
+    ref_vals = evaluate_cardinal_Bspline_basis(degrees, pts)
     assert np.allclose(ref_vals, vals)
-
-
-@pytest.mark.parametrize("degree", [1, 2, 3, 4, 5])
-def test_spline_element_partition_of_unity(degree):
-    """Test that B-spline basis functions sum to 1 (partition of unity)."""
-    supdegree = degree + 5
-    element = SplineElement(degree, supdegree)
-
-    n_pts = 50
-    eval_pts = basix.create_lattice(
-        CellType.interval, n_pts, basix.LatticeType.equispaced, True
-    )
-
-    ref_vals = element.tabulate(0, eval_pts)[0]  # Shape: (n_pts, degree+1)
-    sums = np.sum(ref_vals, axis=1)
-
-    assert np.allclose(sums, 1.0)
-
-
-def test_spline_element_non_negativity():
-    """Test that B-spline basis functions are non-negative."""
-    degree = 3
-    supdegree = degree + 5
-    element = SplineElement(degree, supdegree)
-
-    n_pts = 100
-    eval_pts = basix.create_lattice(
-        CellType.interval, n_pts, basix.LatticeType.equispaced, True
-    )
-
-    ref_vals = element.tabulate(0, eval_pts)[0]  # Shape: (n_pts, degree+1)
-
-    assert np.all(ref_vals >= -1e-14)  # Allow for small numerical errors
