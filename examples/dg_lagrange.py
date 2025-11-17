@@ -21,16 +21,18 @@ from ufl import (
 
 import ufl
 
-N = 8
+N = 10
 mesh = dolfinx.mesh.create_unit_square(
     MPI.COMM_WORLD, N, N, cell_type=dolfinx.mesh.CellType.quadrilateral
 )
+# mesh = dolfinx.mesh.create_interval(MPI.COMM_WORLD, N, [0.0, 1.0])
 
 
 from dolfinx_iga.splines.element import create_cardinal_Bspline_element
 
 
-degrees = [2, 5]
+degrees = [2, 3]
+
 el = create_cardinal_Bspline_element(
     degrees=degrees,  # NOTE: 4,5 gives weird interpolation estimates
     shape=(),
@@ -46,20 +48,19 @@ c_y = dolfinx.fem.Constant(mesh, np.pi)
 
 
 def u_exact(mod, x):
-    return mod.sin(float(c_x) * x[0]) * mod.cos(float(c_y) * x[1])
+    return float(c_x) * x[0] ** 2
+    # return mod.sin(float(c_x) * x[0]) * mod.cos(float(c_y) * x[1])
 
 
 uD = dolfinx.fem.Function(V)
 uD.interpolate(lambda x: u_exact(np, x))
 uD.x.scatter_forward()
 
-
 x = SpatialCoordinate(mesh)
 error = inner(u_exact(ufl, x) - uD, u_exact(ufl, x) - uD) * dx
 L2_error = dolfinx.fem.assemble_scalar(dolfinx.fem.form(error))
 gL2 = mesh.comm.allreduce(L2_error, op=MPI.SUM)
-print(f"L2 error: {numpy.sqrt(gL2)}")
-
+print(f"L2 interpolation error: {numpy.sqrt(gL2)}")
 
 f = -div(grad(u_exact(ufl, x)))
 u = TrialFunction(V)
@@ -112,7 +113,7 @@ uh = problem.solve()
 error = inner(u_exact(ufl, x) - uh, u_exact(ufl, x) - uh) * dx
 L2_error = dolfinx.fem.assemble_scalar(dolfinx.fem.form(error))
 gL2 = mesh.comm.allreduce(L2_error, op=MPI.SUM)
-print(f"L2 error: {numpy.sqrt(gL2)}")
+print(f"L2 solve error: {numpy.sqrt(gL2)}")
 
 max_deg = max(degrees)
 space = dolfinx.fem.functionspace(mesh, ("DG", max_deg))
