@@ -21,54 +21,62 @@ from ufl import (
 
 import ufl
 
-num_elements_per_direction = [5, 3, 2]
-mesh = dolfinx.mesh.create_unit_cube(
-    MPI.COMM_WORLD,
-    *num_elements_per_direction,
-    cell_type=dolfinx.mesh.CellType.hexahedron,
-)
+gd = 1
 
-# mesh = dolfinx.mesh.create_interval(
-#     MPI.COMM_WORLD,
-#     num_elements_per_direction[0],
-#     [0.0, 1.0],
-#     ghost_mode=dolfinx.mesh.GhostMode.shared_facet,
-# )
-
+num_elements_per_direction = [11, 3, 2]
+if gd == 3:
+    mesh = dolfinx.mesh.create_unit_cube(
+        MPI.COMM_WORLD,
+        *num_elements_per_direction,
+        cell_type=dolfinx.mesh.CellType.hexahedron,
+    )
+elif gd == 1:
+    mesh = dolfinx.mesh.create_interval(
+        MPI.COMM_WORLD,
+        num_elements_per_direction[0],
+        [0.0, 1.0],
+        ghost_mode=dolfinx.mesh.GhostMode.shared_facet,
+    )
+else:
+    raise RuntimeError("Only 1D and 3D meshes supported")
 
 from dolfinx_iga.splines.element import create_cardinal_Bspline_element
 import numpy as np
 
-degrees = [2, 3, 5]
+
+if gd == 1:
+    degrees = [3]
+else:
+    degrees = [2, 3, 5]
 
 el = create_cardinal_Bspline_element(
     degrees=degrees,  # NOTE: 4,5 gives weird interpolation estimates
     shape=(),
 )
-# A B-spline of degree k has k+1 basis functions and support over k+1 elements
 num_cells_local = mesh.topology.index_map(mesh.topology.dim).size_local
-
-
-num_cells = num_cells_local + mesh.topology.index_map(mesh.topology.dim).num_ghosts
-midpoint = dolfinx.mesh.compute_midpoints(
-    mesh, mesh.topology.dim, np.arange(num_cells, dtype=np.int32)
-)
+num_ghost_cells = mesh.topology.index_map(mesh.topology.dim).num_ghosts
+num_cells = num_cells_local + num_ghost_cells
 min_locs = np.zeros(3)
 max_locs = np.zeros(3)
-num_cells_per_direction = np.zeros(3)
+num_cells_per_direction = np.zeros(3, dtype=np.int32)
 for i in range(mesh.geometry.dim):
     min_locs[i] = mesh.comm.allreduce(np.min(mesh.geometry.x[:, i]), op=MPI.MIN)
     max_locs[i] = mesh.comm.allreduce(np.max(mesh.geometry.x[:, i]), op=MPI.MAX)
     num_cells_per_direction[i] = num_elements_per_direction[i]
 
+# Compute IJK index for each cell on the process
 deltax = (max_locs - min_locs) / num_cells_per_direction
 np.nan_to_num(deltax, copy=False)
+midpoint = dolfinx.mesh.compute_midpoints(
+    mesh, mesh.topology.dim, np.arange(num_cells, dtype=np.int32)
+)
 ijk = np.ceil((midpoint - min_locs) / deltax) - 1  # IJK index in tensor product grid
 np.nan_to_num(ijk, copy=False)
 ijk = ijk.astype(np.int64)
 
 # Collapse ijk index over x-y-z axis to unique_integer
-multiplier = np.array(
+multiplier = np.zeros(3, dtype=np.int32)
+multiplier[: mesh.geometry.dim] = np.array(
     [np.prod(num_cells_per_direction[:i]) for i in range(mesh.geometry.dim)],
     dtype=np.int32,
 )
@@ -86,9 +94,12 @@ num_dofs_global = np.prod(dofs_global)
 # First figure out local numbering of the dofs (and if they are owned)
 # Currently make the first k+1 dofs owned by whoever owns the first element in that direction
 # Cell j owns dof k+1 + j
+# Also create map from local function (dof) to element number in 1D.
+# NOTE: Currently assuming fixed support width for all dofs in a given direction
+# Pablo will supply a better function for this later
 num_dofs_per_cell = el.dim * el.block_size
 global_dofs = np.empty((ijk.shape[0], num_dofs_per_cell), dtype=np.int64)
-is_owned = np.empty((ijk.shape[0], num_dofs_per_cell), dtype=bool)
+ijk_owner = np.empty((ijk.shape[0], num_dofs_per_cell), dtype=np.int32)
 for cell, (i, j, k) in enumerate(ijk):
     if mesh.geometry.dim == 3:
         raise RuntimeError("bla")
@@ -96,15 +107,23 @@ for cell, (i, j, k) in enumerate(ijk):
         dof = int((int(i) + degrees[0]) * dofs_global[1] + (int(j) + degrees[1]))
     elif mesh.geometry.dim == 1:
         global_dofs[cell] = [i + j for j in range(degrees[0] + 1)]
-        # First cell in x-dir owns all its dofs, then every other cell owns the last basis,#
-        # the one that starts in this element
-        is_owned[cell] = [
-            (i == 0 or j == degrees[0]) and cell < num_cells_local
-            for j in range(degrees[0] + 1)
-        ]
+        # First check if we are in first or last cell in tensor product grid.
+        # If first cell, own first k+1 dofs in each direction
+        # If last cell own the k+1 dof in each direction
+        relative_cell_ownership_index = np.full(
+            num_dofs_per_cell, np.inf, dtype=np.int32
+        )
+        indices = np.arange(len(relative_cell_ownership_index))[::-1]
+        indices[indices > i] = i
+        relative_cell_ownership_index[:] = i - indices
+        relative_cell_ownership_index[-1] *= i != 0
+        ijk_owner[cell] = relative_cell_ownership_index
     else:
         raise RuntimeError("Only 1,2,3D meshes supported")
-process_owned_dofs = np.unique(global_dofs[is_owned])
+
+print(f"{MPI.COMM_WORLD.rank}, {global_dofs=} {ijk=} {ijk_owner=}", flush=True)
+exit()
+
 # Need to determine which process has ownership of each that is not owned
 ghosted_dofs_dm = np.isin(global_dofs, process_owned_dofs, invert=True)
 find_indices = ijk[np.any(ghosted_dofs_dm, axis=1)]
