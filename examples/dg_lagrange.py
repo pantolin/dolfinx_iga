@@ -1,5 +1,8 @@
 import dolfinx
 import numpy
+from dolfinx_iga.splines.element import create_cardinal_Bspline_element
+import numpy as np
+
 from mpi4py import MPI
 from petsc4py import PETSc
 from ufl import (
@@ -21,7 +24,7 @@ from ufl import (
 
 import ufl
 
-gd = 1
+gd = 3
 
 num_elements_per_direction = [11, 3, 2]
 if gd == 3:
@@ -39,9 +42,6 @@ elif gd == 1:
     )
 else:
     raise RuntimeError("Only 1D and 3D meshes supported")
-
-from dolfinx_iga.splines.element import create_cardinal_Bspline_element
-import numpy as np
 
 
 if gd == 1:
@@ -74,18 +74,58 @@ ijk = np.ceil((midpoint - min_locs) / deltax) - 1  # IJK index in tensor product
 np.nan_to_num(ijk, copy=False)
 ijk = ijk.astype(np.int64)
 
+
 # Collapse ijk index over x-y-z axis to unique_integer
-multiplier = np.zeros(3, dtype=np.int32)
-multiplier[: mesh.geometry.dim] = np.array(
+cell_multiplier = np.zeros(3, dtype=np.int32)
+cell_multiplier[: mesh.geometry.dim] = np.array(
     [np.prod(num_cells_per_direction[:i]) for i in range(mesh.geometry.dim)],
     dtype=np.int32,
 )
-global_idx = ijk @ multiplier.reshape(-1, 1).flatten()
+global_cell_idx = ijk @ cell_multiplier.reshape(-1, 1).flatten()
+num_cells_global = mesh.topology.index_map(mesh.topology.dim).size_global
+
+# 1 if cell is owned, 0 if ghost, -1 if not on process
+# 2 if ghosted on other process
+cell_on_process = np.full(num_cells_global, -1, dtype=np.int32)
+cell_on_process[global_cell_idx[:num_cells_local]] = 1
+cell_on_process[global_cell_idx[num_cells_local:]] = 0
+
+# Check if cell is ghosted by any other process
+cell_vec = dolfinx.la.vector(mesh.topology.index_map(mesh.topology.dim))
+cell_vec.array[num_cells_local:] = 1
+cell_vec.scatter_reverse(dolfinx.la.InsertMode.add)
+cell_on_process[
+    global_cell_idx[np.flatnonzero(cell_vec.array[:num_cells_local] == 0)]
+] = 2
 
 
-dofs_global = [degrees[i] + num_cells_per_direction for i in range(mesh.geometry.dim)]
+dofs_global = np.ones(3, dtype=np.int32)
+dofs_global[: mesh.geometry.dim] = [
+    degrees[i] + num_cells_per_direction[i] for i in range(mesh.geometry.dim)
+]
 num_dofs_global = np.prod(dofs_global)
+dof_multiplier = np.zeros(3, dtype=np.int32)
+dof_multiplier[: mesh.geometry.dim] = np.array(
+    [np.prod(dofs_global[:i]) for i in range(mesh.geometry.dim)], dtype=np.int32
+)
 
+
+def dof_pos_to_global_index(dof_pos: tuple[int, ...]) -> int:
+    assert (dof_pos < dofs_global).all()
+    return dof_multiplier @ dof_pos
+
+
+# Function/Spline indicator
+# -1 means not on process
+# 1 means owned by process (and ghosted on other process)
+# 0 means ghosted by process
+# 2 means owned by process and not ghosted anywhere else
+func_indicator = np.full(num_dofs_global, -1, dtype=np.int32)
+
+breakpoint()
+
+
+breakpoint()
 # Pick some dof ordering
 # The dofs are currently ordered as [[x0,y0,z0], ..., [x0,y0,zN],
 #  [x0,y1,z0], ... [x0,y1,zN], ..., [x0, yN, zN], [x1,y0,z0], ... [xN,yN,zN]]
