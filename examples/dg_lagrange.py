@@ -31,7 +31,7 @@ mesh = dolfinx.mesh.create_unit_square(
 from dolfinx_iga.splines.element import create_cardinal_Bspline_element
 
 
-degrees = [2, 3]
+degrees = [2, 5]
 
 el = create_cardinal_Bspline_element(
     degrees=degrees,  # NOTE: 4,5 gives weird interpolation estimates
@@ -52,15 +52,15 @@ def u_exact(mod, x):
     # return mod.sin(float(c_x) * x[0]) * mod.cos(float(c_y) * x[1])
 
 
-uD = dolfinx.fem.Function(V)
-uD.interpolate(lambda x: u_exact(np, x))
-uD.x.scatter_forward()
+# uD = dolfinx.fem.Function(V)
+# uD.interpolate(lambda x: u_exact(np, x))
+# uD.x.scatter_forward()
 
 x = SpatialCoordinate(mesh)
-error = inner(u_exact(ufl, x) - uD, u_exact(ufl, x) - uD) * dx
-L2_error = dolfinx.fem.assemble_scalar(dolfinx.fem.form(error))
-gL2 = mesh.comm.allreduce(L2_error, op=MPI.SUM)
-print(f"L2 interpolation error: {numpy.sqrt(gL2)}")
+# error = inner(u_exact(ufl, x) - uD, u_exact(ufl, x) - uD) * dx
+# L2_error = dolfinx.fem.assemble_scalar(dolfinx.fem.form(error))
+# gL2 = mesh.comm.allreduce(L2_error, op=MPI.SUM)
+# print(f"L2 interpolation error: {numpy.sqrt(gL2)}")
 
 f = -div(grad(u_exact(ufl, x)))
 u = TrialFunction(V)
@@ -91,7 +91,10 @@ a += +gamma / h_avg * inner(jump(v, n), jump(u, n)) * dS
 # Add Nitsche terms
 a += -inner(n, grad(v)) * u * ds + alpha / h * inner(u, v) * ds
 L = inner(f, v) * dx
-L += -inner(n, grad(v)) * uD * ds + alpha / h * inner(uD, v) * ds
+L += (
+    -inner(n, grad(v)) * u_exact(ufl, x) * ds
+    + alpha / h * inner(u_exact(ufl, x), v) * ds
+)
 
 import dolfinx.fem.petsc
 
