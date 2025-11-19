@@ -2,7 +2,10 @@ import dolfinx
 import numpy
 from dolfinx_iga.splines.element import create_cardinal_Bspline_element
 import numpy as np
-
+from dolfinx_iga.splines.bspline_1D import Bspline1D, Bspline1DDofsManager
+from dolfinx_iga.splines.knots import (
+    create_uniform_open_knot_vector,
+)
 from mpi4py import MPI
 from petsc4py import PETSc
 from ufl import (
@@ -24,14 +27,20 @@ from ufl import (
 
 import ufl
 
-gd = 3
+gd = 2
 
-num_elements_per_direction = [11, 3, 2]
+num_elements_per_direction = [4, 2, 4]
 if gd == 3:
     mesh = dolfinx.mesh.create_unit_cube(
         MPI.COMM_WORLD,
         *num_elements_per_direction,
         cell_type=dolfinx.mesh.CellType.hexahedron,
+    )
+elif gd == 2:
+    mesh = dolfinx.mesh.create_unit_square(
+        MPI.COMM_WORLD,
+        *num_elements_per_direction[:2],
+        cell_type=dolfinx.mesh.CellType.quadrilateral,
     )
 elif gd == 1:
     mesh = dolfinx.mesh.create_interval(
@@ -43,9 +52,10 @@ elif gd == 1:
 else:
     raise RuntimeError("Only 1D and 3D meshes supported")
 
-
 if gd == 1:
-    degrees = [3]
+    degrees = [2]
+elif gd == 2:
+    degrees = [2, 2]
 else:
     degrees = [2, 3, 5]
 
@@ -53,16 +63,30 @@ el = create_cardinal_Bspline_element(
     degrees=degrees,  # NOTE: 4,5 gives weird interpolation estimates
     shape=(),
 )
+
+# As the mesh might have been created a-priori, we compute the extent in each direction.
+# Of course this assumes that the mesh is structured in a tensor-product way.
 num_cells_local = mesh.topology.index_map(mesh.topology.dim).size_local
 num_ghost_cells = mesh.topology.index_map(mesh.topology.dim).num_ghosts
 num_cells = num_cells_local + num_ghost_cells
 min_locs = np.zeros(3)
 max_locs = np.zeros(3)
 num_cells_per_direction = np.zeros(3, dtype=np.int32)
+# NOTE: Ensure that we handle 0 cells on process
 for i in range(mesh.geometry.dim):
     min_locs[i] = mesh.comm.allreduce(np.min(mesh.geometry.x[:, i]), op=MPI.MIN)
     max_locs[i] = mesh.comm.allreduce(np.max(mesh.geometry.x[:, i]), op=MPI.MAX)
     num_cells_per_direction[i] = num_elements_per_direction[i]
+
+
+# Create corresponding 1D splines on the same mesh.
+spline_managers = []
+for i in range(mesh.geometry.dim):
+    knots = create_uniform_open_knot_vector(
+        num_cells_per_direction[i], degrees[i], start=min_locs[i], end=max_locs[i]
+    )
+    spline = Bspline1D(knots, degrees[i], periodic=True)
+    spline_managers.append(Bspline1DDofsManager(spline))
 
 # Compute IJK index for each cell on the process
 deltax = (max_locs - min_locs) / num_cells_per_direction
@@ -74,18 +98,17 @@ ijk = np.ceil((midpoint - min_locs) / deltax) - 1  # IJK index in tensor product
 np.nan_to_num(ijk, copy=False)
 ijk = ijk.astype(np.int64)
 
-
 # Collapse ijk index over x-y-z axis to unique_integer
 cell_multiplier = np.zeros(3, dtype=np.int32)
 cell_multiplier[: mesh.geometry.dim] = np.array(
     [np.prod(num_cells_per_direction[:i]) for i in range(mesh.geometry.dim)],
-    dtype=np.int32,
+    dtype=np.int64,
 )
-global_cell_idx = ijk @ cell_multiplier.reshape(-1, 1).flatten()
+global_cell_idx = ijk @ cell_multiplier
 num_cells_global = mesh.topology.index_map(mesh.topology.dim).size_global
 
-# 1 if cell is owned, 0 if ghost, -1 if not on process
-# 2 if ghosted on other process
+# 1 if cell is owned and ghosted, 0 if ghost, -1 if not on process
+# 2 if owned and not ghosted on other process
 cell_on_process = np.full(num_cells_global, -1, dtype=np.int32)
 cell_on_process[global_cell_idx[:num_cells_local]] = 1
 cell_on_process[global_cell_idx[num_cells_local:]] = 0
@@ -115,6 +138,25 @@ def dof_pos_to_global_index(dof_pos: tuple[int, ...]) -> int:
     return dof_multiplier @ dof_pos
 
 
+def invert_cell_idx(cell_idx: int) -> tuple[int, ...]:
+    if mesh.geometry.dim == 1:
+        return int(cell_idx)
+    elif mesh.geometry.dim == 2:
+        Nx = num_cells_per_direction[0]
+        j = cell_idx // Nx
+        i = cell_idx % Nx
+        return int(i), int(j)
+    elif mesh.geometry.dim == 3:
+        Ny = num_cells_per_direction[1]
+        Nz = num_cells_per_direction[2]
+        k = cell_idx // (Ny * Nz)
+        j = (cell_idx - k * Ny * Nz) // Nz
+        i = cell_idx - k * Ny * Nz - j * Nz
+        return int(i), int(j), int(k)
+    else:
+        raise RuntimeError("Only 1D, 2D and 3D supported")
+
+
 # Function/Spline indicator
 # -1 means not on process
 # 1 means owned by process (and ghosted on other process)
@@ -122,66 +164,58 @@ def dof_pos_to_global_index(dof_pos: tuple[int, ...]) -> int:
 # 2 means owned by process and not ghosted anywhere else
 func_indicator = np.full(num_dofs_global, -1, dtype=np.int32)
 
-breakpoint()
+tmp_ijk = np.zeros(3, dtype=np.int64)
+
+print(MPI.COMM_WORLD.rank, f"{num_cells_local=} {num_ghost_cells=}", flush=True)
+dof_ownership = np.zeros(dofs_global[: mesh.geometry.dim], dtype=bool)
+
+for cell, l_ijk in enumerate(ijk):
+    for dir_0 in range(mesh.geometry.dim):
+        for dir_1 in range(dir_0 + 1, mesh.geometry.dim):
+            # Note: at least vectorize for l_idx.
+            for l0 in range(degrees[dir_0] + 1):
+                global_func_idx_0 = spline_managers[dir_0].get_global_basis_ids(
+                    l_ijk[dir_0], l0
+                )
+                cell0_idx = spline_managers[dir_0].get_first_cell_of_global_basis_id(
+                    global_func_idx_0
+                )
+
+                for l1 in range(degrees[dir_1] + 1):
+                    global_func_idx_1 = spline_managers[dir_1].get_global_basis_ids(
+                        l_ijk[dir_1], l1
+                    )
+                    cell1_idx = spline_managers[
+                        dir_1
+                    ].get_first_cell_of_global_basis_id(global_func_idx_1)
+                    tmp_ijk[:] = l_ijk
+                    tmp_ijk[dir_0] = cell0_idx
+                    tmp_ijk[dir_1] = cell1_idx
+                    owns_dof = cell_on_process[tmp_ijk @ cell_multiplier]
+                    dof_ownership[global_func_idx_0, global_func_idx_1] = owns_dof > 0
+                # print(
+                #     f"rank {MPI.COMM_WORLD.rank}",
+                #     f"Local cell {cell}",
+                #     f"axis {dir}",
+                #     f"Local func {l_idx}",
+                #     f"Original {l_ijk}",
+                #     f"New {tmp_ijk}",
+                #     f"Cell indicator {owns_dof}",
+                #     f"Owns dof {owns_dof > 0}",
+                #     flush=True,
+                # )
 
 
-breakpoint()
-# Pick some dof ordering
-# The dofs are currently ordered as [[x0,y0,z0], ..., [x0,y0,zN],
-#  [x0,y1,z0], ... [x0,y1,zN], ..., [x0, yN, zN], [x1,y0,z0], ... [xN,yN,zN]]
-# per element. We want the global dof ordering to be (z,y,x)
-
-# First figure out local numbering of the dofs (and if they are owned)
-# Currently make the first k+1 dofs owned by whoever owns the first element in that direction
-# Cell j owns dof k+1 + j
-# Also create map from local function (dof) to element number in 1D.
-# NOTE: Currently assuming fixed support width for all dofs in a given direction
-# Pablo will supply a better function for this later
-num_dofs_per_cell = el.dim * el.block_size
-global_dofs = np.empty((ijk.shape[0], num_dofs_per_cell), dtype=np.int64)
-ijk_owner = np.empty((ijk.shape[0], num_dofs_per_cell), dtype=np.int32)
-for cell, (i, j, k) in enumerate(ijk):
-    if mesh.geometry.dim == 3:
-        raise RuntimeError("bla")
-    elif mesh.geometry.dim == 2:
-        dof = int((int(i) + degrees[0]) * dofs_global[1] + (int(j) + degrees[1]))
-    elif mesh.geometry.dim == 1:
-        global_dofs[cell] = [i + j for j in range(degrees[0] + 1)]
-        # First check if we are in first or last cell in tensor product grid.
-        # If first cell, own first k+1 dofs in each direction
-        # If last cell own the k+1 dof in each direction
-        relative_cell_ownership_index = np.full(
-            num_dofs_per_cell, np.inf, dtype=np.int32
-        )
-        indices = np.arange(len(relative_cell_ownership_index))[::-1]
-        indices[indices > i] = i
-        relative_cell_ownership_index[:] = i - indices
-        relative_cell_ownership_index[-1] *= i != 0
-        ijk_owner[cell] = relative_cell_ownership_index
-    else:
-        raise RuntimeError("Only 1,2,3D meshes supported")
-
-print(f"{MPI.COMM_WORLD.rank}, {global_dofs=} {ijk=} {ijk_owner=}", flush=True)
+# print(
+#     f"Local cell {cell}, ijk={l_ijk}, axis={dir}, local_func_idx={l_idx}, global_func_idx={global_func_idx}"
+# )
+# for i in range(mesh.geometry.dim):
+print(MPI.COMM_WORLD.rank, dof_ownership.T)
+on_proc_cells = np.flatnonzero(cell_on_process > 0)
+ijk_on_proc = [invert_cell_idx(on_proc_cell) for on_proc_cell in on_proc_cells]
+print(MPI.COMM_WORLD.rank, ijk_on_proc)
 exit()
 
-# Need to determine which process has ownership of each that is not owned
-ghosted_dofs_dm = np.isin(global_dofs, process_owned_dofs, invert=True)
-find_indices = ijk[np.any(ghosted_dofs_dm, axis=1)]
-ghosted_dofs = np.unique(global_dofs[ghosted_dofs_dm])
-
-print(
-    MPI.COMM_WORLD.rank,
-    "Finding owners for indices:",
-    find_indices,
-    f"{process_owned_dofs=}",
-    f"{ghosted_dofs=}",
-    f"{num_cells_local=}",
-    f"{ijk=}",
-    global_dofs,
-    flush=True,
-)
-assert len(ghosted_dofs) == 0
-exit()
 breakpoint()
 # V = dolfinx.fem.functionspace(mesh, el)
 # V = dolfinx.fem.functionspace(mesh, ("DG", 2))
