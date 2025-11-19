@@ -367,7 +367,25 @@ class Bspline1D:
 
 
 class Bspline1DDofsManager:
+    """A class for managing the degrees of freedom (DOFs) of a B-spline 1D object.
+
+    This class provides methods to get the global basis id for a given cell and local basis id,
+    the first cell where a given global basis id is active, and the first global basis id for a given cell.
+
+    Attributes:
+        _bspline (Bspline1D): The B-spline object.
+        _cell_first_basis_ids (npt.NDArray[np.int_]): The first basis id for each cell.
+    """
+
+    _bspline: Bspline1D
+    _cell_first_basis_ids: npt.NDArray[np.int_]
+
     def __init__(self, bspline: Bspline1D):
+        """Initialize a Bspline1DDofsManager object.
+
+        Args:
+            bspline (Bspline1D): The B-spline object.
+        """
         self._bspline = bspline
 
         self._cell_first_basis_ids = self._create_cell_first_basis_ids()
@@ -382,6 +400,15 @@ class Bspline1DDofsManager:
         return np.concatenate(([0], np.cumsum(mult[1:-1])))
 
     def get_global_basis_ids(self, cell_id: int, local_basis_id: int) -> int:
+        """Get the global basis id for a given cell and local basis id.
+
+        Args:
+            cell_id (int): The cell id.
+            local_basis_id (int): The local basis id.
+
+        Returns:
+            int: The global basis id.
+        """
         if cell_id < 0 or cell_id >= self._bspline.num_intervals:
             raise ValueError(f"Cell id {cell_id} is out of range")
 
@@ -392,6 +419,14 @@ class Bspline1DDofsManager:
         return int(first_global_basis_id + local_basis_id)
 
     def get_first_cell_of_global_basis_id(self, global_basis_id: int) -> int:
+        """Get the first cell where a given global basis id is active.
+
+        Args:
+            global_basis_id (int): The global basis id.
+
+        Returns:
+            int: The first cell id.
+        """
         if global_basis_id < 0 or global_basis_id >= self._bspline.num_basis:
             raise ValueError(f"Global basis id {global_basis_id} is out of range")
 
@@ -403,6 +438,14 @@ class Bspline1DDofsManager:
         return int(cell_id)
 
     def get_first_global_basis_id_of_cell(self, cell_id: int) -> int:
+        """Get the first global basis id for a given cell.
+
+        Args:
+            cell_id (int): The cell id.
+
+        Returns:
+            int: The first global basis id.
+        """
         if cell_id < 0 or cell_id >= self._bspline.num_intervals:
             raise ValueError(f"Cell id {cell_id} is out of range")
         return int(self._cell_first_basis_ids[cell_id])
