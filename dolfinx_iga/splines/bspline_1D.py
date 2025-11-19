@@ -364,3 +364,45 @@ class Bspline1D:
             array([True, False])
         """
         return get_cardinal_intervals_impl(self._knots, self._degree, self._tol)
+
+
+class Bspline1DDofsManager:
+    def __init__(self, bspline: Bspline1D):
+        self._bspline = bspline
+
+        self._cell_first_basis_ids = self._create_cell_first_basis_ids()
+
+    def _create_cell_first_basis_ids(self) -> npt.NDArray[np.int_]:
+        """Create the first basis id for each cell.
+
+        Returns:
+            npt.NDArray[np.int_]: The first basis id for each cell.
+        """
+        _, mult = self._bspline.get_unique_knots_and_multiplicity(in_domain=True)
+        return np.concatenate(([0], np.cumsum(mult[1:-1])))
+
+    def get_global_basis_ids(self, cell_id: int, local_basis_id: int) -> int:
+        if cell_id < 0 or cell_id >= self._bspline.num_intervals:
+            raise ValueError(f"Cell id {cell_id} is out of range")
+
+        if local_basis_id < 0 or local_basis_id > self._bspline.degree:
+            raise ValueError(f"Local basis id {local_basis_id} is out of range")
+
+        first_global_basis_id = self._cell_first_basis_ids[cell_id]
+        return int(first_global_basis_id + local_basis_id)
+
+    def get_first_cell_of_global_basis_id(self, global_basis_id: int) -> int:
+        if global_basis_id < 0 or global_basis_id >= self._bspline.num_basis:
+            raise ValueError(f"Global basis id {global_basis_id} is out of range")
+
+        last_basis_id_of_cell = self._cell_first_basis_ids + self._bspline.degree + 1
+
+        cell_id = np.argmax(last_basis_id_of_cell > global_basis_id)
+
+        assert cell_id < self._bspline.num_intervals, "cell_id is out of range"
+        return int(cell_id)
+
+    def get_first_global_basis_id_of_cell(self, cell_id: int) -> int:
+        if cell_id < 0 or cell_id >= self._bspline.num_intervals:
+            raise ValueError(f"Cell id {cell_id} is out of range")
+        return int(self._cell_first_basis_ids[cell_id])
