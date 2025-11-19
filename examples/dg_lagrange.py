@@ -167,8 +167,9 @@ func_indicator = np.full(num_dofs_global, -1, dtype=np.int32)
 tmp_ijk = np.zeros(3, dtype=np.int64)
 
 print(MPI.COMM_WORLD.rank, f"{num_cells_local=} {num_ghost_cells=}", flush=True)
-dof_ownership = np.zeros(dofs_global[: mesh.geometry.dim], dtype=bool)
 
+# For each process, determine which DOFs are owned.
+dof_ownership = np.full(dofs_global[: mesh.geometry.dim], -1, dtype=np.int32)
 for cell, l_ijk in enumerate(ijk):
     for dir_0 in range(mesh.geometry.dim):
         for dir_1 in range(dir_0 + 1, mesh.geometry.dim):
@@ -193,18 +194,22 @@ for cell, l_ijk in enumerate(ijk):
                     tmp_ijk[dir_1] = cell1_idx
                     owns_dof = cell_on_process[tmp_ijk @ cell_multiplier]
                     dof_ownership[global_func_idx_0, global_func_idx_1] = owns_dof > 0
-                # print(
-                #     f"rank {MPI.COMM_WORLD.rank}",
-                #     f"Local cell {cell}",
-                #     f"axis {dir}",
-                #     f"Local func {l_idx}",
-                #     f"Original {l_ijk}",
-                #     f"New {tmp_ijk}",
-                #     f"Cell indicator {owns_dof}",
-                #     f"Owns dof {owns_dof > 0}",
-                #     flush=True,
-                # )
 
+print(MPI.COMM_WORLD.rank, dof_ownership.T[::-1], flush=True)
+# NOTE: This follows Pablos ordering of DOFs.
+owned_dof_indices = np.vstack(np.nonzero(dof_ownership > 0)).T
+owned_dof_indices_global = owned_dof_indices @ dof_multiplier[: mesh.geometry.dim]
+
+num_owned_dofs_local = len(owned_dof_indices_global)
+local_range_start = mesh.comm.exscan(num_owned_dofs_local, op=MPI.SUM)
+local_range_start = 0 if local_range_start is None else local_range_start
+local_range_end = local_range_start + num_owned_dofs_local
+print(MPI.COMM_WORLD.rank, local_range_start, local_range_end, flush=True)
+
+# print(MPI.COMM_WORLD.rank, owned_dof_indices_global)
+
+
+exit()
 
 # print(
 #     f"Local cell {cell}, ijk={l_ijk}, axis={dir}, local_func_idx={l_idx}, global_func_idx={global_func_idx}"
