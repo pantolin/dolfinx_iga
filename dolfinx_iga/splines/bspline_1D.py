@@ -3,7 +3,8 @@ with support for open, floating, and periodic knot vectors.
 """
 
 import functools
-from typing import Optional
+from collections.abc import Iterable
+from typing import Optional, cast
 
 import numpy as np
 from numpy import typing as npt
@@ -374,11 +375,11 @@ class Bspline1DDofsManager:
 
     Attributes:
         _bspline (Bspline1D): The B-spline object.
-        _cell_first_basis_ids (npt.NDArray[np.int_]): The first basis id for each cell.
+        _cell_first_basis_ids (npt.NDArray[np.int32]): The first basis id for each cell.
     """
 
     _bspline: Bspline1D
-    _cell_first_basis_ids: npt.NDArray[np.int_]
+    _cell_first_basis_ids: npt.NDArray[np.int32]
 
     def __init__(self, bspline: Bspline1D):
         """Initialize a Bspline1DDofsManager object.
@@ -390,62 +391,82 @@ class Bspline1DDofsManager:
 
         self._cell_first_basis_ids = self._create_cell_first_basis_ids()
 
-    def _create_cell_first_basis_ids(self) -> npt.NDArray[np.int_]:
+    def _create_cell_first_basis_ids(self) -> npt.NDArray[np.int32]:
         """Create the first basis id for each cell.
 
         Returns:
-            npt.NDArray[np.int_]: The first basis id for each cell.
+            npt.NDArray[np.int32]: The first basis id for each cell.
         """
         _, mult = self._bspline.get_unique_knots_and_multiplicity(in_domain=True)
-        return np.concatenate(([0], np.cumsum(mult[1:-1])))
+        return np.concatenate(([0], np.cumsum(mult[1:-1]))).astype(np.int32)
 
-    def get_global_basis_ids(self, cell_id: int, local_basis_id: int) -> int:
-        """Get the global basis id for a given cell and local basis id.
-
-        Args:
-            cell_id (int): The cell id.
-            local_basis_id (int): The local basis id.
-
-        Returns:
-            int: The global basis id.
-        """
-        if cell_id < 0 or cell_id >= self._bspline.num_intervals:
-            raise ValueError(f"Cell id {cell_id} is out of range")
-
-        if local_basis_id < 0 or local_basis_id > self._bspline.degree:
-            raise ValueError(f"Local basis id {local_basis_id} is out of range")
-
-        first_global_basis_id = self._cell_first_basis_ids[cell_id]
-        return int(first_global_basis_id + local_basis_id)
-
-    def get_first_cell_of_global_basis_id(self, global_basis_id: int) -> int:
-        """Get the first cell where a given global basis id is active.
+    def get_global_basis_ids(
+        self, cell_ids: Iterable[np.int32]
+    ) -> npt.NDArray[np.int32]:
+        """Get the global basis ids of the given cells.
 
         Args:
-            global_basis_id (int): The global basis id.
+            cell_ids (Iterable[np.int32]): The cell ids.
 
         Returns:
-            int: The first cell id.
+            npt.NDArray[np.int32]: The global basis ids for each cell.
+            This is a 2D array with shape (len(cell_ids), self._bspline.degree + 1).
         """
-        if global_basis_id < 0 or global_basis_id >= self._bspline.num_basis:
-            raise ValueError(f"Global basis id {global_basis_id} is out of range")
+        # Check that all cell_ids are within [0, num_intervals)
+        num_intervals = self._bspline.num_intervals
+        cell_ids = np.asarray(cell_ids)
+        if np.any(cell_ids < 0) or np.any(cell_ids >= num_intervals):
+            raise ValueError(f"Some cell_ids are out of range [0, {num_intervals})")
 
-        last_basis_id_of_cell = self._cell_first_basis_ids + self._bspline.degree + 1
+        first_global_basis_ids = self._cell_first_basis_ids[cell_ids].reshape(-1, 1)
+        basis_ids = first_global_basis_ids + np.arange(
+            self._bspline.degree + 1, dtype=np.int32
+        )
+        return cast(npt.NDArray[np.int32], basis_ids.astype(np.int32))
 
-        cell_id = np.argmax(last_basis_id_of_cell > global_basis_id)
-
-        assert cell_id < self._bspline.num_intervals, "cell_id is out of range"
-        return int(cell_id)
-
-    def get_first_global_basis_id_of_cell(self, cell_id: int) -> int:
-        """Get the first global basis id for a given cell.
+    def get_first_cell_of_global_basis_id(
+        self, global_basis_ids: Iterable[np.int32]
+    ) -> npt.NDArray[np.int32]:
+        """Get the first cell where given global basis ids are active.
 
         Args:
-            cell_id (int): The cell id.
+            global_basis_ids (Iterable[np.int32]): The global basis ids.
 
         Returns:
-            int: The first global basis id.
+            npt.NDArray[np.int32]: The first cell ids for each global basis id.
         """
-        if cell_id < 0 or cell_id >= self._bspline.num_intervals:
-            raise ValueError(f"Cell id {cell_id} is out of range")
-        return int(self._cell_first_basis_ids[cell_id])
+        global_basis_ids = np.asarray(global_basis_ids)
+        if np.any(global_basis_ids < 0) or np.any(
+            global_basis_ids >= self._bspline.num_basis
+        ):
+            raise ValueError(
+                f"Some global basis ids are out of range [0, {self._bspline.num_basis})"
+            )
+
+        last_basis_id_of_cells = self._cell_first_basis_ids + self._bspline.degree + 1
+
+        cell_ids = np.searchsorted(
+            last_basis_id_of_cells, global_basis_ids, side="right"
+        )
+
+        assert np.all(cell_ids < self._bspline.num_intervals), (
+            "cell_ids are out of range"
+        )
+        return cell_ids.astype(np.int32)
+
+    def get_first_global_basis_id_of_cell(
+        self, cell_ids: Iterable[np.int32]
+    ) -> npt.NDArray[np.int32]:
+        """Get the first global basis id for given cells.
+
+        Args:
+            cell_ids (Iterable[np.int32]): The cell ids.
+
+        Returns:
+            npt.NDArray[np.int32]: The first global basis id for each cell.
+        """
+        cell_ids = np.asarray(cell_ids)
+        num_intervals = self._bspline.num_intervals
+        if np.any(cell_ids < 0) or np.any(cell_ids >= num_intervals):
+            raise ValueError(f"Some cell_ids are out of range [0, {num_intervals})")
+        return cast(npt.NDArray[np.int32], self._cell_first_basis_ids[cell_ids])
