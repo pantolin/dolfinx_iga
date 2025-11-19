@@ -41,6 +41,7 @@ elif gd == 2:
         MPI.COMM_WORLD,
         *num_elements_per_direction[:2],
         cell_type=dolfinx.mesh.CellType.quadrilateral,
+        ghost_mode=dolfinx.mesh.GhostMode.none,
     )
 elif gd == 1:
     mesh = dolfinx.mesh.create_interval(
@@ -168,8 +169,11 @@ tmp_ijk = np.zeros(3, dtype=np.int64)
 
 print(MPI.COMM_WORLD.rank, f"{num_cells_local=} {num_ghost_cells=}", flush=True)
 
-# For each process, determine which DOFs are owned.
+# For each process, determine which DOFs are owned (1),
+# which ones are required but not owned/ghosted (0)
+# and which ones that are not needed at all (-1).
 dof_ownership = np.full(dofs_global[: mesh.geometry.dim], -1, dtype=np.int32)
+parent_cells = np.full_like(dof_ownership, -1, dtype=np.int32)
 for cell, l_ijk in enumerate(ijk):
     for dir_0 in range(mesh.geometry.dim):
         for dir_1 in range(dir_0 + 1, mesh.geometry.dim):
@@ -192,10 +196,12 @@ for cell, l_ijk in enumerate(ijk):
                     tmp_ijk[:] = l_ijk
                     tmp_ijk[dir_0] = cell0_idx
                     tmp_ijk[dir_1] = cell1_idx
-                    owns_dof = cell_on_process[tmp_ijk @ cell_multiplier]
+                    parent_cell_idx = tmp_ijk @ cell_multiplier
+                    owns_dof = cell_on_process[parent_cell_idx]
+                    parent_cells[global_func_idx_0, global_func_idx_1] = parent_cell_idx
                     dof_ownership[global_func_idx_0, global_func_idx_1] = owns_dof > 0
 
-print(MPI.COMM_WORLD.rank, dof_ownership.T[::-1], flush=True)
+print(MPI.COMM_WORLD.rank, dof_ownership.T[::-1], parent_cells.T[::-1], flush=True)
 # NOTE: This follows Pablos ordering of DOFs.
 owned_dof_indices = np.vstack(np.nonzero(dof_ownership > 0)).T
 owned_dof_indices_global = owned_dof_indices @ dof_multiplier[: mesh.geometry.dim]
