@@ -56,7 +56,7 @@ else:
 if gd == 1:
     degrees = [2]
 elif gd == 2:
-    degrees = [2, 2]
+    degrees = [2, 3]
 else:
     degrees = [2, 3, 5]
 
@@ -169,12 +169,28 @@ tmp_ijk = np.zeros(3, dtype=np.int64)
 
 print(MPI.COMM_WORLD.rank, f"{num_cells_local=} {num_ghost_cells=}", flush=True)
 
+
+# FIXME: Now this needs to not store a dense matrix!
+# Stores ownership of each DOF required on process as
+# ((i,j,k), ownership, parent_cell)
+new_dof_ownership: list[tuple[tuple[int, ...], int, int]] = []
+
+
 # For each process, determine which DOFs are owned (1),
 # which ones are required but not owned/ghosted (0)
 # and which ones that are not needed at all (-1).
+
 dof_ownership = np.full(dofs_global[: mesh.geometry.dim], -1, dtype=np.int32)
 parent_cells = np.full_like(dof_ownership, -1, dtype=np.int32)
 for cell, l_ijk in enumerate(ijk):
+    global_func_ids_per_dim = [
+        [
+            spline_managers[i].get_global_basis_ids(l_ijk[i], k)
+            for k in range(degrees[i])
+        ]
+        for i in range(mesh.geometry.dim)
+    ]
+    print(cell, l_ijk, global_func_ids_per_dim, flush=True)
     for dir_0 in range(mesh.geometry.dim):
         for dir_1 in range(dir_0 + 1, mesh.geometry.dim):
             # Note: at least vectorize for l_idx.
@@ -200,6 +216,8 @@ for cell, l_ijk in enumerate(ijk):
                     owns_dof = cell_on_process[parent_cell_idx]
                     parent_cells[global_func_idx_0, global_func_idx_1] = parent_cell_idx
                     dof_ownership[global_func_idx_0, global_func_idx_1] = owns_dof > 0
+
+                    # new_dof_ownership.append()
 
 print(MPI.COMM_WORLD.rank, dof_ownership.T[::-1], parent_cells.T[::-1], flush=True)
 # NOTE: This follows Pablos ordering of DOFs.
